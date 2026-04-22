@@ -52,7 +52,7 @@ export function Header() {
               <p className="text-xs text-slate-500 truncate mt-0.5">{email}</p>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              onClick={() => signOut({ callbackUrl: "/login" })}
               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
             >
               Sign out

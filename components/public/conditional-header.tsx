@@ -9,7 +9,11 @@ import { SiteHeader } from "@/components/public/site-header";
  */
 export function ConditionalHeader() {
   const pathname = usePathname();
-  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) {
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/provider")
+  ) {
     return null;
   }
   return <SiteHeader />;

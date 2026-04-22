@@ -55,7 +55,7 @@ export function AuthButton() {
   }
 
   // ── Logged in ─────────────────────────────────────────────────────────────
-  const { name, email, image } = session.user ?? {};
+  const { name, email, image, role } = session.user ?? {};
   const displayName = name ?? email ?? "Account";
   const initials = displayName
     .split(" ")
@@ -63,6 +63,14 @@ export function AuthButton() {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  // Determine the dashboard link based on role
+  const dashboardLink =
+    role === "ADMIN"
+      ? { href: "/admin", label: "Admin Dashboard" }
+      : role === "PROVIDER"
+      ? { href: "/provider", label: "Provider Dashboard" }
+      : { href: "/my-bookings", label: "My Bookings" };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -105,25 +113,41 @@ export function AuthButton() {
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-50 overflow-hidden">
           {/* Profile header */}
           <div className="px-4 py-3 border-b border-slate-100">
             <p className="text-sm font-semibold text-slate-900 truncate">{displayName}</p>
             {name && (
               <p className="text-xs text-slate-500 truncate mt-0.5">{email}</p>
             )}
+            {/* Role badge for staff users */}
+            {(role === "ADMIN" || role === "PROVIDER") && (
+              <span className={`inline-flex items-center mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                role === "ADMIN"
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "bg-violet-50 text-violet-700"
+              }`}>
+                {role}
+              </span>
+            )}
           </div>
 
-          {/* My Bookings */}
+          {/* Role-aware dashboard / bookings link */}
           <Link
-            href="/my-bookings"
+            href={dashboardLink.href}
             onClick={() => setOpen(false)}
             className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition"
           >
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            My Bookings
+            {role === "ADMIN" || role === "PROVIDER" ? (
+              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            )}
+            {dashboardLink.label}
           </Link>
 
           {/* Divider */}
