@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"   // ✅ FIXED
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?
+  name      String?
+  role      Role     @default(CUSTOMER)
+
+  // 🔥 Provider Staff Relation
+  providerId String?
+  provider   Provider? @relation("ProviderStaff", fields: [providerId], references: [id])
+
+  // 🔥 Provider Owner Relation (1:1)
+  ownedProvider Provider? @relation("ProviderOwner")
+
+  // 🔥 Customer bookings
+  bookings  Booking[]
+
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+
+  providers Provider[]
+}
+
+model Provider {
+  id          String   @id @default(cuid())
+  name        String
+
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  // 🔥 OWNER
+  ownerId     String   @unique
+  owner       User     @relation("ProviderOwner", fields: [ownerId], references: [id])
+
+  // 🔥 STAFF
+  users       User[]   @relation("ProviderStaff")
+
+  resources   Resource[]
+  bookings    Booking[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  name        String
+
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+
+  duration    Int
+  price       Int
+
+  startTime   String
+  endTime     String
+
+  bookings    Booking[]
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+
+  userId      String
+  resourceId  String
+  providerId  String
+
+  start       DateTime
+  end         DateTime
+
+  status      BookingStatus @default(CONFIRMED)
+
+  user        User     @relation(fields: [userId], references: [id])
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  provider    Provider @relation(fields: [providerId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  PROVIDER
+  CUSTOMER
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
