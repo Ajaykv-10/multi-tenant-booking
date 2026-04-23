@@ -11,10 +11,20 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
 
+  if (pathname?.startsWith("/login")) {
+    return null;
+  }
+
   const navLinks = [
     { href: "/", label: "Home" },
     ...(session?.user?.role === "CUSTOMER" 
         ? [{ href: "/my-bookings", label: "My Bookings" }] 
+        : []),
+    ...(session?.user?.role === "PROVIDER" 
+        ? [{ href: "/provider", label: "Dashboard" }] 
+        : []),
+    ...(session?.user?.role === "ADMIN" 
+        ? [{ href: "/admin", label: "Dashboard" }] 
         : []),
   ];
 

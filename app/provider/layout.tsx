@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/provider/sidebar";
-import { Header } from "@/components/provider/header";
 import { prisma } from "@/lib/prisma";
 
 export default async function ProviderLayout({
@@ -24,7 +23,7 @@ export default async function ProviderLayout({
 
   if (!user?.ownedProvider) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-center px-4">
+      <div className="flex-1 flex items-center justify-center bg-slate-50 text-center px-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">No Provider Account</h1>
           <p className="text-slate-500">You must own a provider account to access this dashboard.</p>
@@ -34,11 +33,10 @@ export default async function ProviderLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="flex-1 bg-slate-50 flex relative">
       <Sidebar />
       <div className="flex-1 flex flex-col ml-64 min-w-0">
-        <Header />
-        {children}
+        <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
     </div>
   );
