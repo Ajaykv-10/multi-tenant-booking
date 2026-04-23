@@ -4,9 +4,6 @@ import { requireAdmin } from "@/lib/api-auth";
 
 // GET /api/providers — list all providers with category, owner, and counts
 export async function GET() {
-  const { error } = await requireAdmin();
-  if (error) return error;
-
   const providers = await prisma.provider.findMany({
     include: {
       category: { select: { id: true, name: true, slug: true } },
