@@ -4,16 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AuthButton } from "@/components/public/auth-button";
-
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/categories", label: "Categories" },
-  { href: "/my-bookings", label: "My Bookings" },
-];
+import { useSession } from "next-auth/react";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
+
+  const navLinks = [
+    { href: "/", label: "Home" },
+    ...(session?.user?.role === "CUSTOMER" 
+        ? [{ href: "/my-bookings", label: "My Bookings" }] 
+        : []),
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
