@@ -59,9 +59,10 @@ export default function ProviderResourcesPage() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase font-medium">
                 <th className="px-6 py-3 text-left">Name</th>
-                <th className="px-6 py-3 text-left">Duration</th>
+                <th className="px-6 py-3 text-left">Type</th>
+                <th className="px-6 py-3 text-left">Duration / Rate</th>
                 <th className="px-6 py-3 text-left">Price</th>
-                <th className="px-6 py-3 text-left">Working Hours</th>
+                <th className="px-6 py-3 text-left">Hours / Check-in</th>
                 <th className="px-6 py-3 text-left">Bookings</th>
                 <th className="px-6 py-3 text-left">Actions</th>
               </tr>
@@ -75,8 +76,15 @@ export default function ProviderResourcesPage() {
                 resources.map((res) => (
                   <tr key={res.id} className="hover:bg-slate-50/50 transition">
                     <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{res.name}</td>
-                    <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{res.duration} min</td>
-                    <td className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">₹{(res.price / 100).toFixed(0)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${res.type === 'HOTEL' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {res.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                      {res.type === 'HOTEL' ? 'Stay-based' : `${res.duration} min`}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">₹{(res.price / 100).toFixed(0)} {res.type === 'HOTEL' && <span className="text-[10px] text-slate-400 font-normal">/ day</span>}</td>
                     <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-xs font-medium text-slate-700">
                         {res.startTime} - {res.endTime}

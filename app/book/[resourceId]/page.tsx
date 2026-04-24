@@ -14,6 +14,7 @@ export default function BookResourcePage() {
 
   const [resource, setResource] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState<string>(new Date(Date.now() + 86400000).toISOString().split("T")[0]);
   const [slots, setSlots] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
   
@@ -43,22 +44,43 @@ export default function BookResourcePage() {
     }
   }, [resourceId, status]);
 
-  // Fetch availability when date changes
+  // Fetch availability when date changes (for EVENT or HOTEL)
   useEffect(() => {
-    if (status !== "authenticated" || !selectedDate) return;
+    if (status !== "authenticated" || !selectedDate || !resource) return;
     
+    // For Hotel, we only fetch if endDate is also set and >= selectedDate
+    if (resource.type === "HOTEL" && (!endDate || endDate < selectedDate)) {
+      setSelectedSlot(null);
+      return;
+    }
+
     setIsFetchingSlots(true);
-    setSelectedSlot(null);
     setErrorMessage("");
 
-    fetch(`/api/availability?resourceId=${resourceId}&date=${selectedDate}`)
+    const url = resource.type === "HOTEL" 
+      ? `/api/availability?resourceId=${resourceId}&date=${selectedDate}&endDate=${endDate}`
+      : `/api/availability?resourceId=${resourceId}&date=${selectedDate}`;
+
+    fetch(url)
       .then(res => res.json())
       .then(data => {
-        if (data.slots) setSlots(data.slots);
+        if (data.slots) {
+          if (resource.type === "EVENT") {
+            setSlots(data.slots);
+            setSelectedSlot(null);
+          } else {
+            // For HOTEL, the API returns the single range slot
+            const slot = data.slots[0];
+            setSelectedSlot(slot?.available ? slot : null);
+            if (slot && !slot.available) {
+              setErrorMessage("The selected dates are unfortunately not available.");
+            }
+          }
+        }
         setIsFetchingSlots(false);
       })
       .catch(() => setIsFetchingSlots(false));
-  }, [resourceId, selectedDate, status]);
+  }, [resourceId, selectedDate, endDate, status, resource]);
 
   const handleConfirm = async () => {
     if (!selectedSlot || !resource) return;
@@ -152,34 +174,78 @@ export default function BookResourcePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">1. Select Date</h2>
-              <input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full md:w-auto px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                {resource.type === "HOTEL" ? "1. Select Stay Dates" : "1. Select Date"}
+              </h2>
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-500 mb-2">{resource.type === "HOTEL" ? "Check-in" : "Date"}</label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                {resource.type === "HOTEL" && (
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">Check-out</label>
+                    <input
+                      type="date"
+                      min={selectedDate}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {resource.type === "HOTEL" && (
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                  {isFetchingSlots ? (
+                    <div className="flex items-center text-blue-600 text-sm">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Checking availability...
+                    </div>
+                  ) : selectedSlot ? (
+                    <div className="flex items-center text-green-600 text-sm font-medium">
+                      <svg className="w-5 h-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Great! These dates are available for your stay.
+                    </div>
+                  ) : !errorMessage && (
+                    <div className="text-gray-500 text-sm italic">
+                      Please select check-in and check-out dates.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
-                2. Select Time
-                {isFetchingSlots && <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>}
-              </h2>
-              <SlotPicker
-                slots={slots}
-                selectedSlot={selectedSlot}
-                onSelectSlot={setSelectedSlot}
-                isLoading={isFetchingSlots}
-              />
-            </div>
+            {resource.type === "EVENT" && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center justify-between">
+                  2. Select Time
+                  {isFetchingSlots && <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>}
+                </h2>
+                <SlotPicker
+                  slots={slots}
+                  selectedSlot={selectedSlot}
+                  onSelectSlot={setSelectedSlot}
+                  isLoading={isFetchingSlots}
+                />
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <BookingSummary
                 resourceName={resource.name}
+                resourceType={resource.type}
                 price={resource.price}
                 duration={resource.duration}
                 selectedDate={selectedDate}

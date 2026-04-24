@@ -12,7 +12,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, duration, price, startTime, endTime } = body;
+  const { name, type, duration, price, startTime, endTime } = body;
 
   // Validate ownership
   const existing = await prisma.resource.findUnique({ where: { id } });
@@ -22,7 +22,10 @@ export async function PATCH(
 
   const dataToUpdate: any = {};
   if (name !== undefined) dataToUpdate.name = name.trim();
+  if (type !== undefined) dataToUpdate.type = type;
   if (duration !== undefined) dataToUpdate.duration = Number(duration);
+  else if (type === "HOTEL" && existing.type !== "HOTEL") dataToUpdate.duration = 1440;
+  
   if (price !== undefined) dataToUpdate.price = Number(price);
   if (startTime !== undefined) dataToUpdate.startTime = startTime;
   if (endTime !== undefined) dataToUpdate.endTime = endTime;

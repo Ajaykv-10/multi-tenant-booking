@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const resourceId = searchParams.get("resourceId");
   const dateStr = searchParams.get("date"); // YYYY-MM-DD
+  const endDateStr = searchParams.get("endDate"); // YYYY-MM-DD (Optional, for hotels)
 
   if (!resourceId || !dateStr) {
     return NextResponse.json({ error: "resourceId and date are required" }, { status: 400 });
@@ -18,44 +19,63 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Resource not found" }, { status: 404 });
   }
 
-  // Find existing confirmed bookings for this date
-  const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-  const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+  // Find existing confirmed bookings that overlap with the day(s)
+  const startQuery = new Date(`${dateStr}T00:00:00.000Z`);
+  const endQuery = new Date(`${endDateStr || dateStr}T23:59:59.999Z`);
 
   const bookings = await prisma.booking.findMany({
     where: {
       resourceId,
       status: "CONFIRMED",
-      start: { gte: startOfDay },
-      end: { lte: endOfDay }
+      OR: [
+        { start: { lte: endQuery }, end: { gte: startQuery } }
+      ]
     }
   });
 
-  // Calculate slots
+  if (resource.type === "HOTEL") {
+    // For hotels, check specific stay availability
+    if (endDateStr) {
+      const stayStart = new Date(`${dateStr}T${resource.startTime}:00Z`);
+      const stayEnd = new Date(`${endDateStr}T${resource.endTime}:00Z`);
+      
+      const isUnavailable = bookings.some(b => 
+        Math.max(stayStart.getTime(), b.start.getTime()) < Math.min(stayEnd.getTime(), b.end.getTime())
+      );
+
+      return NextResponse.json({ 
+        slots: [{ 
+          start: stayStart.toISOString(), 
+          end: stayEnd.toISOString(), 
+          available: !isUnavailable && stayStart.getTime() >= Date.now() 
+        }] 
+      });
+    }
+    // If no endDate provided for a hotel, return empty/placeholder or basic info
+    return NextResponse.json({ slots: [] });
+  }
+
+  // Calculate slots for EVENT type
   const [startHour, startMin] = resource.startTime.split(":").map(Number);
   const [endHour, endMin] = resource.endTime.split(":").map(Number);
   
   const slots: { start: string; end: string; available: boolean }[] = [];
-  let current = new Date(startOfDay);
+  let current = new Date(startQuery);
   current.setUTCHours(startHour, startMin, 0, 0);
 
-  const end = new Date(startOfDay);
-  end.setUTCHours(endHour, endMin, 0, 0);
+  const endLimit = new Date(startQuery);
+  endLimit.setUTCHours(endHour, endMin, 0, 0);
 
   const durationMs = resource.duration * 60000;
 
-  while (current.getTime() + durationMs <= end.getTime()) {
+  while (current.getTime() + durationMs <= endLimit.getTime()) {
     const slotStart = new Date(current);
     const slotEnd = new Date(current.getTime() + durationMs);
 
-    // Check if slot overlaps with any booking
-    const isBooked = bookings.some(b => {
-      // Overlap if max(start1, start2) < min(end1, end2)
-      return Math.max(slotStart.getTime(), b.start.getTime()) < Math.min(slotEnd.getTime(), b.end.getTime());
-    });
+    const isBooked = bookings.some(b => 
+      Math.max(slotStart.getTime(), b.start.getTime()) < Math.min(slotEnd.getTime(), b.end.getTime())
+    );
 
-    // Also check if slot is in the past
-    // If dateStr is today, we check against Date.now()
     const isPast = slotStart.getTime() < Date.now();
 
     slots.push({

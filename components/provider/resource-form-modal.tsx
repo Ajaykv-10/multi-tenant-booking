@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 export interface Resource {
   id: string;
   name: string;
+  type: "EVENT" | "HOTEL";
   duration: number;
   price: number;
   startTime: string;
@@ -24,6 +25,7 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
   const isEdit = !!target;
   const [form, setForm] = useState({
     name: "",
+    type: "EVENT" as "EVENT" | "HOTEL",
     duration: "30",
     price: "0",
     startTime: "09:00",
@@ -38,6 +40,7 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
       if (target) {
         setForm({
           name: target.name,
+          type: target.type,
           duration: target.duration.toString(),
           price: (target.price / 100).toString(),
           startTime: target.startTime,
@@ -46,6 +49,7 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
       } else {
         setForm({
           name: "",
+          type: "EVENT",
           duration: "30",
           price: "0",
           startTime: "09:00",
@@ -103,14 +107,32 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
             placeholder="e.g. Dr. Smith / Conference Room A" className={inputClass} />
         </FormField>
 
+        <FormField label="Booking Type" htmlFor="res-type">
+          <select 
+            id="res-type" 
+            value={form.type} 
+            onChange={(e) => setForm(f => ({ ...f, type: e.target.value as any }))}
+            className={inputClass}
+          >
+            <option value="EVENT">Event (Minute-based slots)</option>
+            <option value="HOTEL">Hotel (Date-range booking)</option>
+          </select>
+        </FormField>
+
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Duration (minutes)" htmlFor="res-dur">
-            <input id="res-dur" type="number" required min="1" value={form.duration}
-              onChange={(e) => setForm(f => ({ ...f, duration: e.target.value }))}
-              placeholder="30" className={inputClass} />
-          </FormField>
+          {form.type === "EVENT" ? (
+            <FormField label="Duration (minutes)" htmlFor="res-dur">
+              <input id="res-dur" type="number" required min="1" value={form.duration}
+                onChange={(e) => setForm(f => ({ ...f, duration: e.target.value }))}
+                placeholder="30" className={inputClass} />
+            </FormField>
+          ) : (
+            <div className="flex items-end pb-3 text-sm text-slate-500 italic">
+              Duration is determined by customer selection.
+            </div>
+          )}
           
-          <FormField label="Price (₹)" htmlFor="res-price">
+          <FormField label={`Price (${form.type === "HOTEL" ? "₹ / day" : "₹"})`} htmlFor="res-price">
             <input id="res-price" type="number" required min="0" step="0.01" value={form.price}
               onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))}
               placeholder="0" className={inputClass} />
@@ -118,13 +140,13 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Working Hours Start" htmlFor="res-start">
+          <FormField label={form.type === "HOTEL" ? "Check-in Time" : "Working Hours Start"} htmlFor="res-start">
             <input id="res-start" type="time" required value={form.startTime}
               onChange={(e) => setForm(f => ({ ...f, startTime: e.target.value }))}
               className={inputClass} />
           </FormField>
 
-          <FormField label="Working Hours End" htmlFor="res-end">
+          <FormField label={form.type === "HOTEL" ? "Check-out Time" : "Working Hours End"} htmlFor="res-end">
             <input id="res-end" type="time" required value={form.endTime}
               onChange={(e) => setForm(f => ({ ...f, endTime: e.target.value }))}
               className={inputClass} />

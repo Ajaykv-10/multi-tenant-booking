@@ -24,9 +24,9 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, duration, price, startTime, endTime } = body;
+  const { name, type, duration, price, startTime, endTime } = body;
 
-  if (!name || duration == null || price == null || !startTime || !endTime) {
+  if (!name || (type === "EVENT" && duration == null) || price == null || !startTime || !endTime) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 }
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
   const resource = await prisma.resource.create({
     data: {
       name: name.trim(),
-      duration: Number(duration),
+      type: type || "EVENT",
+      duration: type === "HOTEL" ? 1440 : Number(duration), // Use 1440 (1 day) as default for HOTEL
       price: Number(price),
       startTime,
       endTime,

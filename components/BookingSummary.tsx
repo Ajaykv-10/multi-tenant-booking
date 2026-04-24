@@ -2,6 +2,7 @@ import { memo } from "react";
 
 interface BookingSummaryProps {
   resourceName: string;
+  resourceType?: "EVENT" | "HOTEL";
   price: number;
   duration: number;
   selectedDate: string;
@@ -12,6 +13,7 @@ interface BookingSummaryProps {
 
 export const BookingSummary = memo(function BookingSummary({
   resourceName,
+  resourceType = "EVENT",
   price,
   duration,
   selectedDate,
@@ -19,6 +21,17 @@ export const BookingSummary = memo(function BookingSummary({
   onConfirm,
   isBooking
 }: BookingSummaryProps) {
+  const isHotel = resourceType === "HOTEL";
+  
+  let numDays = 1;
+  if (isHotel && selectedSlot) {
+    const start = new Date(selectedSlot.start.split('T')[0]);
+    const end = new Date(selectedSlot.end.split('T')[0]);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    numDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive of start/end
+  }
+
+  const totalPrice = isHotel ? price * numDays : price;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
@@ -39,10 +52,10 @@ export const BookingSummary = memo(function BookingSummary({
         </div>
 
         <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
-          <span className="text-gray-500 dark:text-gray-400">{duration === 1440 ? 'Date Range' : 'Time'}</span>
+          <span className="text-gray-500 dark:text-gray-400">{isHotel ? 'Date Range' : duration === 1440 ? 'Date Range' : 'Time'}</span>
           <span className="font-semibold text-gray-900 dark:text-gray-100">
             {selectedSlot 
-              ? duration === 1440
+              ? isHotel || duration === 1440
                 ? `${new Date(selectedSlot.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} - ${new Date(selectedSlot.end).toLocaleDateString([], { month: 'short', day: 'numeric' })}`
                 : `${new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
               : 'Not selected'}
@@ -52,14 +65,14 @@ export const BookingSummary = memo(function BookingSummary({
         <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
           <span className="text-gray-500 dark:text-gray-400">Duration</span>
           <span className="font-semibold text-gray-900 dark:text-gray-100">
-            {duration === 1440 ? '1 Day' : `${duration} mins`}
+            {isHotel ? `${numDays} Days` : duration === 1440 ? '1 Day' : `${duration} mins`}
           </span>
         </div>
 
         <div className="flex justify-between items-center pt-2">
           <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
           <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
-            ${price.toFixed(2)}
+            ${(totalPrice / 100).toFixed(2)}
           </span>
         </div>
       </div>

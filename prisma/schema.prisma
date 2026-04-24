@@ -58,6 +58,7 @@ model Provider {
 model Resource {
   id          String   @id @default(cuid())
   name        String
+  type        ResourceType @default(EVENT)
 
   providerId  String
   provider    Provider @relation(fields: [providerId], references: [id])
@@ -69,6 +70,11 @@ model Resource {
   endTime     String
 
   bookings    Booking[]
+}
+
+enum ResourceType {
+  EVENT
+  HOTEL
 }
 
 model Booking {
