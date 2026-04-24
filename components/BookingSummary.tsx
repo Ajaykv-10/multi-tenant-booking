@@ -39,17 +39,21 @@ export const BookingSummary = memo(function BookingSummary({
         </div>
 
         <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
-          <span className="text-gray-500 dark:text-gray-400">Time</span>
+          <span className="text-gray-500 dark:text-gray-400">{duration === 1440 ? 'Date Range' : 'Time'}</span>
           <span className="font-semibold text-gray-900 dark:text-gray-100">
             {selectedSlot 
-              ? `${new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+              ? duration === 1440
+                ? `${new Date(selectedSlot.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} - ${new Date(selectedSlot.end).toLocaleDateString([], { month: 'short', day: 'numeric' })}`
+                : `${new Date(selectedSlot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
               : 'Not selected'}
           </span>
         </div>
 
         <div className="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-700">
           <span className="text-gray-500 dark:text-gray-400">Duration</span>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">{duration} mins</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100">
+            {duration === 1440 ? '1 Day' : `${duration} mins`}
+          </span>
         </div>
 
         <div className="flex justify-between items-center pt-2">

@@ -25,8 +25,7 @@ export async function GET(req: NextRequest) {
     userId = session.user.id;
   } else if (session.user.role === "PROVIDER") {
     // Ideally we filter by providerId they own, but for this exercise we focus on customer
-    // The previous implementation used requireAdmin(), so we'll just check role here
-    if (!userId && !providerId && session.user.role !== "ADMIN") {
+    if (!userId && !providerId) {
       // Just enforcing some limits if needed
     }
   }

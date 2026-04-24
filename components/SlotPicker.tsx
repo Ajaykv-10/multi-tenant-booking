@@ -36,7 +36,17 @@ export const SlotPicker = memo(function SlotPicker({ slots, selectedSlot, onSele
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       {slots.map((slot) => {
         const isSelected = selectedSlot?.start === slot.start;
-        const timeString = new Date(slot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const durationMins = (new Date(slot.end).getTime() - new Date(slot.start).getTime()) / 60000;
+        const isOneDay = durationMins === 1440;
+        
+        let displayString;
+        if (isOneDay) {
+          const startDate = new Date(slot.start).toLocaleDateString([], { month: 'short', day: 'numeric' });
+          const endDate = new Date(slot.end).toLocaleDateString([], { month: 'short', day: 'numeric' });
+          displayString = `${startDate} - ${endDate}`;
+        } else {
+          displayString = new Date(slot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
         
         return (
           <button
@@ -46,14 +56,14 @@ export const SlotPicker = memo(function SlotPicker({ slots, selectedSlot, onSele
             className={`
               py-3 px-4 rounded-xl text-center font-medium transition-all duration-200 border
               ${!slot.available 
-                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-transparent cursor-not-allowed hidden' 
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-transparent cursor-not-allowed' 
                 : isSelected
                   ? 'bg-blue-600 text-white border-blue-600 shadow-md transform scale-[1.02]'
                   : 'bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 hover:border-blue-600 hover:shadow-sm'
               }
             `}
           >
-            {timeString}
+            {displayString}
           </button>
         );
       })}

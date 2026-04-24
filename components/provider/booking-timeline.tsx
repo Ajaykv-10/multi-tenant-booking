@@ -114,17 +114,17 @@ export function BookingTimeline({
                         <div
                           key={booking.id}
                           onClick={() => onBookingClick(booking)}
-                          className={`absolute top-1/2 -translate-y-1/2 h-14 rounded-lg border flex flex-col justify-center px-3 cursor-pointer transition shadow-sm overflow-hidden whitespace-nowrap ${bgClass}`}
+                          className={`absolute top-1/2 -translate-y-1/2 h-16 rounded-lg border flex flex-col justify-center px-3 cursor-pointer transition shadow-sm overflow-hidden whitespace-nowrap ${bgClass}`}
                           style={{
                             left: `${Math.max(0, leftPercent)}%`,
                             width: `${Math.min(100 - leftPercent, widthPercent)}%`, // constrain to view
                           }}
                         >
                           <p className={`text-xs font-bold truncate ${textClass}`}>
-                            {booking.user.name || "Customer"}
+                            {booking.user.name || "Customer"} • {booking.resource.name}
                           </p>
-                          <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5">
-                            {new Date(booking.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+                          <p className="text-[10px] opacity-80 font-medium truncate mt-0.5">
+                            {new Date(booking.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })} - {new Date(booking.end).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                           </p>
                         </div>
                       );
