@@ -9,6 +9,8 @@ interface BookingSummaryProps {
   selectedSlot: { start: string; end: string } | null;
   onConfirm: () => void;
   isBooking: boolean;
+  checkInTime?: string;
+  checkOutTime?: string;
 }
 
 export const BookingSummary = memo(function BookingSummary({
@@ -19,10 +21,20 @@ export const BookingSummary = memo(function BookingSummary({
   selectedDate,
   selectedSlot,
   onConfirm,
-  isBooking
+  isBooking,
+  checkInTime,
+  checkOutTime
 }: BookingSummaryProps) {
   const isHotel = resourceType === "HOTEL";
   
+  const formatTo12Hour = (timeStr?: string) => {
+    if (!timeStr) return "";
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const h12 = hours % 12 || 12;
+    return `${h12}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
   let numDays = 1;
   if (isHotel && selectedSlot) {
     const start = new Date(selectedSlot.start.split('T')[0]);
@@ -68,6 +80,19 @@ export const BookingSummary = memo(function BookingSummary({
             {isHotel ? `${numDays} Days` : duration === 1440 ? '1 Day' : `${duration} mins`}
           </span>
         </div>
+
+        {isHotel && checkInTime && checkOutTime && (
+          <div className="grid grid-cols-2 gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col">
+              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Check-in</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{formatTo12Hour(checkInTime)}</span>
+            </div>
+            <div className="flex flex-col text-right">
+              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Check-out</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{formatTo12Hour(checkOutTime)}</span>
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-between items-center pt-2">
           <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>

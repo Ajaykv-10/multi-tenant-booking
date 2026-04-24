@@ -252,6 +252,8 @@ export default function BookResourcePage() {
                 selectedSlot={selectedSlot}
                 onConfirm={handleConfirm}
                 isBooking={isBooking}
+                checkInTime={resource.startTime}
+                checkOutTime={resource.endTime}
               />
             </div>
           </div>
