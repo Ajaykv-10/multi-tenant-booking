@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { BookingConfirmationEmail } from "@/emails/booking-confirmation";
 
 // GET /api/bookings
 export async function GET(req: NextRequest) {
@@ -71,6 +73,9 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id;
+  const userEmail = session.user.email;
+  const userName = session.user.name || "Customer";
+  
   const body = await req.json();
   const { resourceId, start, end } = body;
 
@@ -117,6 +122,21 @@ export async function POST(req: NextRequest) {
       status: "CONFIRMED"
     }
   });
+
+  // Send confirmation email asynchronously
+  if (userEmail) {
+    const bookingDate = new Date(start).toLocaleString();
+    sendEmail({
+      to: userEmail,
+      subject: "Booking Confirmed",
+      template: BookingConfirmationEmail({
+        customerName: userName,
+        bookingId: booking.id,
+        resourceName: resource.name,
+        bookingDate,
+      }),
+    });
+  }
 
   return NextResponse.json(booking, { status: 201 });
 }
