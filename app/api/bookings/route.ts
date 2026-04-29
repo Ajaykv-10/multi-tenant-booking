@@ -77,13 +77,17 @@ export async function POST(req: NextRequest) {
   const userName = session.user.name || "Customer";
   
   const body = await req.json();
-  const { resourceId, start, end } = body;
+  const { resourceId, start, end, seats_booked = 1, participants = [] } = body;
 
   if (!resourceId || !start || !end) {
     return NextResponse.json(
       { error: "resourceId, start, and end are required" },
       { status: 400 }
     );
+  }
+
+  if (seats_booked < 1) {
+    return NextResponse.json({ error: "At least 1 seat must be booked" }, { status: 400 });
   }
 
   const resource = await prisma.resource.findUnique({
@@ -94,8 +98,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Resource not found" }, { status: 404 });
   }
 
+  // Validate max booking per user
+  if (resource.maxBookingPerUser && seats_booked > resource.maxBookingPerUser) {
+    return NextResponse.json(
+      { error: `You can only book up to ${resource.maxBookingPerUser} seats at once.` },
+      { status: 400 }
+    );
+  }
+
+  // Validate group booking participants
+  if (resource.isGroupBookingEnabled) {
+    if (participants.length !== seats_booked) {
+      return NextResponse.json(
+        { error: "Participants count must match the number of seats booked." },
+        { status: 400 }
+      );
+    }
+    const missingNames = participants.some((p: any) => !p.name || p.name.trim() === "");
+    if (missingNames) {
+      return NextResponse.json(
+        { error: "Participant name is required." },
+        { status: 400 }
+      );
+    }
+  }
+
   // Validate for conflicting bookings (race condition prevention)
-  const overlappingBooking = await prisma.booking.findFirst({
+  const overlappingBookings = await prisma.booking.findMany({
     where: {
       resourceId,
       status: "CONFIRMED",
@@ -104,9 +133,12 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  if (overlappingBooking) {
+  const bookedSeats = overlappingBookings.reduce((sum, b) => sum + b.seats, 0);
+  const availableSeats = Math.max(0, resource.capacity - bookedSeats);
+
+  if (seats_booked > availableSeats) {
     return NextResponse.json(
-      { error: "Slot already booked. Please choose another." },
+      { error: `Only ${availableSeats} seats available. Please reduce your seats.` },
       { status: 409 }
     );
   }
@@ -119,7 +151,17 @@ export async function POST(req: NextRequest) {
       resourceId,
       start: new Date(start),
       end: new Date(end),
-      status: "CONFIRMED"
+      status: "CONFIRMED",
+      seats: seats_booked,
+      ...(resource.isGroupBookingEnabled && participants.length > 0 && {
+        participants: {
+          create: participants.map((p: any) => ({
+            name: p.name,
+            email: p.email || null,
+            phone: p.phone || null
+          }))
+        }
+      })
     }
   });
 

@@ -4,6 +4,8 @@ interface Slot {
   start: string;
   end: string;
   available: boolean;
+  availableSeats?: number;
+  totalCapacity?: number;
 }
 
 interface SlotPickerProps {

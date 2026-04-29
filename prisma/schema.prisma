@@ -66,6 +66,10 @@ model Resource {
   duration    Int
   price       Int
 
+  capacity    Int      @default(1)
+  isGroupBookingEnabled Boolean @default(false)
+  maxBookingPerUser     Int?
+
   startTime   String
   endTime     String
 
@@ -88,10 +92,24 @@ model Booking {
   end         DateTime
 
   status      BookingStatus @default(CONFIRMED)
+  seats       Int           @default(1)
 
   user        User     @relation(fields: [userId], references: [id])
   resource    Resource @relation(fields: [resourceId], references: [id])
   provider    Provider @relation(fields: [providerId], references: [id])
+  participants Participant[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Participant {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
 
   createdAt   DateTime @default(now())
 }

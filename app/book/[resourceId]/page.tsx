@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { SlotPicker } from "@/components/SlotPicker";
 import { BookingSummary } from "@/components/BookingSummary";
+import { SeatSelector } from "@/components/SeatSelector";
+import { ParticipantFormList, ParticipantData } from "@/components/ParticipantFormList";
 import Link from "next/link";
 
 export default function BookResourcePage() {
@@ -22,7 +24,29 @@ export default function BookResourcePage() {
   const [isFetchingSlots, setIsFetchingSlots] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
 
+  const [seatsSelected, setSeatsSelected] = useState(1);
+  const [participants, setParticipants] = useState<ParticipantData[]>([]);
+
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Sync participants array with seatsSelected
+  useEffect(() => {
+    if (!resource?.isGroupBookingEnabled) return;
+    
+    setParticipants(prev => {
+      const updated = [...prev];
+      if (seatsSelected > updated.length) {
+        // Add new participants
+        for (let i = updated.length; i < seatsSelected; i++) {
+          updated.push({ name: "", email: "", phone: "" });
+        }
+      } else if (seatsSelected < updated.length) {
+        // Remove excess participants
+        updated.splice(seatsSelected);
+      }
+      return updated;
+    });
+  }, [seatsSelected, resource?.isGroupBookingEnabled]);
 
   // AUTH CHECK
   useEffect(() => {
@@ -94,7 +118,9 @@ export default function BookResourcePage() {
         body: JSON.stringify({
           resourceId,
           start: selectedSlot.start,
-          end: selectedSlot.end
+          end: selectedSlot.end,
+          seats_booked: seatsSelected,
+          participants: resource.isGroupBookingEnabled ? participants : []
         })
       });
 
@@ -239,6 +265,24 @@ export default function BookResourcePage() {
                 />
               </div>
             )}
+
+            {selectedSlot && (
+              <>
+                <SeatSelector
+                  seatsSelected={seatsSelected}
+                  setSeatsSelected={setSeatsSelected}
+                  availableSeats={selectedSlot.availableSeats || 1}
+                  maxBookingPerUser={resource.maxBookingPerUser}
+                />
+                
+                {resource.isGroupBookingEnabled && (
+                  <ParticipantFormList
+                    participants={participants}
+                    setParticipants={setParticipants}
+                  />
+                )}
+              </>
+            )}
           </div>
 
           <div className="lg:col-span-1">
@@ -254,6 +298,7 @@ export default function BookResourcePage() {
                 isBooking={isBooking}
                 checkInTime={resource.startTime}
                 checkOutTime={resource.endTime}
+                seatsSelected={seatsSelected}
               />
             </div>
           </div>

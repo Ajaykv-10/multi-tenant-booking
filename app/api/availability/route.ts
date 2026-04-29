@@ -39,15 +39,19 @@ export async function GET(req: NextRequest) {
       const stayStart = new Date(`${dateStr}T${resource.startTime}:00Z`);
       const stayEnd = new Date(`${endDateStr}T${resource.endTime}:00Z`);
       
-      const isUnavailable = bookings.some(b => 
+      const overlappingBookings = bookings.filter(b => 
         Math.max(stayStart.getTime(), b.start.getTime()) < Math.min(stayEnd.getTime(), b.end.getTime())
       );
+      const bookedSeats = overlappingBookings.reduce((sum, b) => sum + b.seats, 0);
+      const availableSeats = Math.max(0, resource.capacity - bookedSeats);
 
       return NextResponse.json({ 
         slots: [{ 
           start: stayStart.toISOString(), 
           end: stayEnd.toISOString(), 
-          available: !isUnavailable && stayStart.getTime() >= Date.now() 
+          available: availableSeats > 0 && stayStart.getTime() >= Date.now(),
+          availableSeats,
+          totalCapacity: resource.capacity
         }] 
       });
     }
@@ -59,7 +63,7 @@ export async function GET(req: NextRequest) {
   const [startHour, startMin] = resource.startTime.split(":").map(Number);
   const [endHour, endMin] = resource.endTime.split(":").map(Number);
   
-  const slots: { start: string; end: string; available: boolean }[] = [];
+  const slots: { start: string; end: string; available: boolean; availableSeats: number; totalCapacity: number }[] = [];
   let current = new Date(startQuery);
   current.setUTCHours(startHour, startMin, 0, 0);
 
@@ -72,16 +76,20 @@ export async function GET(req: NextRequest) {
     const slotStart = new Date(current);
     const slotEnd = new Date(current.getTime() + durationMs);
 
-    const isBooked = bookings.some(b => 
+    const overlappingBookings = bookings.filter(b => 
       Math.max(slotStart.getTime(), b.start.getTime()) < Math.min(slotEnd.getTime(), b.end.getTime())
     );
+    const bookedSeats = overlappingBookings.reduce((sum, b) => sum + b.seats, 0);
+    const availableSeats = Math.max(0, resource.capacity - bookedSeats);
 
     const isPast = slotStart.getTime() < Date.now();
 
     slots.push({
       start: slotStart.toISOString(),
       end: slotEnd.toISOString(),
-      available: !isBooked && !isPast
+      available: availableSeats > 0 && !isPast,
+      availableSeats,
+      totalCapacity: resource.capacity
     });
 
     current = new Date(current.getTime() + durationMs);
