@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { name, type, duration, price, startTime, endTime } = body;
+  const { name, type, duration, price, startTime, endTime, capacity, isGroupBookingEnabled, maxBookingPerUser } = body;
 
   if (!name || (type === "EVENT" && duration == null) || price == null || !startTime || !endTime) {
     return NextResponse.json(
@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
       price: Number(price),
       startTime,
       endTime,
+      capacity: capacity ? Number(capacity) : 1,
+      isGroupBookingEnabled: Boolean(isGroupBookingEnabled),
+      maxBookingPerUser: maxBookingPerUser ? Number(maxBookingPerUser) : null,
       providerId,
     },
   });

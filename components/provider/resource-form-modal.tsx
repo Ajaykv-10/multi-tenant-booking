@@ -11,6 +11,9 @@ export interface Resource {
   price: number;
   startTime: string;
   endTime: string;
+  capacity: number;
+  isGroupBookingEnabled: boolean;
+  maxBookingPerUser: number | null;
   _count: { bookings: number };
 }
 
@@ -30,6 +33,9 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
     price: "0",
     startTime: "09:00",
     endTime: "17:00",
+    capacity: "1",
+    isGroupBookingEnabled: false,
+    maxBookingPerUser: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +51,9 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
           price: (target.price / 100).toString(),
           startTime: target.startTime,
           endTime: target.endTime,
+          capacity: target.capacity?.toString() || "1",
+          isGroupBookingEnabled: target.isGroupBookingEnabled || false,
+          maxBookingPerUser: target.maxBookingPerUser?.toString() || "",
         });
       } else {
         setForm({
@@ -54,6 +63,9 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
           price: "0",
           startTime: "09:00",
           endTime: "17:00",
+          capacity: "1",
+          isGroupBookingEnabled: false,
+          maxBookingPerUser: "",
         });
       }
     }
@@ -76,6 +88,8 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
           ...form,
           duration: parseInt(form.duration),
           price: priceInCents,
+          capacity: parseInt(form.capacity) || 1,
+          maxBookingPerUser: form.maxBookingPerUser ? parseInt(form.maxBookingPerUser) : null,
         }),
       });
 
@@ -151,6 +165,33 @@ export function ResourceFormModal({ open, onClose, target, onSuccess }: Resource
               onChange={(e) => setForm(f => ({ ...f, endTime: e.target.value }))}
               className={inputClass} />
           </FormField>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Capacity (Total Seats/Rooms)" htmlFor="res-cap">
+            <input id="res-cap" type="number" required min="1" value={form.capacity}
+              onChange={(e) => setForm(f => ({ ...f, capacity: e.target.value }))}
+              placeholder="1" className={inputClass} />
+          </FormField>
+
+          <FormField label="Max Bookings Per User (Optional)" htmlFor="res-max">
+            <input id="res-max" type="number" min="1" value={form.maxBookingPerUser}
+              onChange={(e) => setForm(f => ({ ...f, maxBookingPerUser: e.target.value }))}
+              placeholder="Unlimited" className={inputClass} />
+          </FormField>
+        </div>
+
+        <div className="flex items-center gap-3 py-2">
+          <input
+            id="res-group"
+            type="checkbox"
+            checked={form.isGroupBookingEnabled}
+            onChange={(e) => setForm(f => ({ ...f, isGroupBookingEnabled: e.target.checked }))}
+            className="w-4 h-4 text-violet-600 border-slate-300 rounded focus:ring-violet-500"
+          />
+          <label htmlFor="res-group" className="text-sm font-medium text-slate-700 cursor-pointer">
+            Enable Group Bookings (Collect details per participant)
+          </label>
         </div>
 
         <div className="flex gap-3 pt-2">

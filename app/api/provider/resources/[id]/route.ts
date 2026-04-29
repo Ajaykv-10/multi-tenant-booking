@@ -12,7 +12,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, type, duration, price, startTime, endTime } = body;
+  const { name, type, duration, price, startTime, endTime, capacity, isGroupBookingEnabled, maxBookingPerUser } = body;
 
   // Validate ownership
   const existing = await prisma.resource.findUnique({ where: { id } });
@@ -29,6 +29,10 @@ export async function PATCH(
   if (price !== undefined) dataToUpdate.price = Number(price);
   if (startTime !== undefined) dataToUpdate.startTime = startTime;
   if (endTime !== undefined) dataToUpdate.endTime = endTime;
+
+  if (capacity !== undefined) dataToUpdate.capacity = Number(capacity);
+  if (isGroupBookingEnabled !== undefined) dataToUpdate.isGroupBookingEnabled = Boolean(isGroupBookingEnabled);
+  if (maxBookingPerUser !== undefined) dataToUpdate.maxBookingPerUser = maxBookingPerUser ? Number(maxBookingPerUser) : null;
 
   const updated = await prisma.resource.update({
     where: { id },
