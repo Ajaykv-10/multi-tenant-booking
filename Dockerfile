@@ -89,4 +89,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 # Entrypoint: run pending migrations, then start the server.
 # Using sh -c so we can chain two commands with &&.
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "npx prisma@6.6.0 migrate deploy && node server.js"]
