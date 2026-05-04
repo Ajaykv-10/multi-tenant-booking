@@ -33,7 +33,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate the Prisma client for the linux-musl-openssl-3.0.x target
-RUN npx prisma generate
+RUN npx prisma@6.6.0 generate
 
 # Build Next.js — produces .next/standalone thanks to output: "standalone"
 ENV NEXT_TELEMETRY_DISABLED=1
