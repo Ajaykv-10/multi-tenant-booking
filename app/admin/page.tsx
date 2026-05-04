@@ -38,13 +38,13 @@ async function getDashboardData() {
   ]);
 
   const revenue = resourcesWithBookings.reduce(
-    (sum: number, r) =>
-      sum + r.price * r.bookings.filter((b) => b.status === "CONFIRMED").length,
+    (sum: number, r: any) =>
+      sum + r.price * r.bookings.filter((b: any) => b.status === "CONFIRMED").length,
     0
   );
 
   const trendMap: Record<string, number> = {};
-  recentBookings.forEach((b) => {
+  recentBookings.forEach((b: any) => {
     const date = b.createdAt.toISOString().split("T")[0];
     trendMap[date] = (trendMap[date] || 0) + 1;
   });
