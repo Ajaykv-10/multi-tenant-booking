@@ -117,18 +117,39 @@ export default function MyBookingsPage() {
                       </div>
                       
                       <div className="md:text-right">
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
                           ${booking.resource.price.toFixed(2)}
                         </p>
-                        {canCancel && (
-                          <button
-                            onClick={() => cancelBooking(booking.id)}
-                            className="inline-flex items-center px-4 py-2 border border-red-200 dark:border-red-800 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                          >
-                            Cancel Booking
-                          </button>
+                        {booking.invoiceNumber && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 font-mono">
+                            {booking.invoiceNumber}
+                          </p>
                         )}
+                        <div className="flex flex-col sm:flex-row md:flex-col gap-2 items-stretch sm:items-center md:items-end">
+                          {booking.status === "CONFIRMED" && (
+                            <a
+                              href={`/api/bookings/${booking.id}/invoice`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-blue-200 dark:border-blue-800 text-sm font-medium rounded-lg text-blue-600 dark:text-blue-400 bg-white dark:bg-transparent hover:bg-blue-50 dark:hover:bg-blue-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download Invoice
+                            </a>
+                          )}
+                          {canCancel && (
+                            <button
+                              onClick={() => cancelBooking(booking.id)}
+                              className="inline-flex items-center justify-center px-4 py-2 border border-red-200 dark:border-red-800 text-sm font-medium rounded-lg text-red-600 dark:text-red-400 bg-white dark:bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            >
+                              Cancel Booking
+                            </button>
+                          )}
+                        </div>
                       </div>
+
                     </div>
                   </li>
                 );

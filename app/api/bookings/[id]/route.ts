@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api-auth";
+import { ensureInvoiceNumber } from "@/lib/invoice/ensureInvoiceNumber";
+
 
 // PATCH /api/bookings/[id] — update booking status and time
 // Body: { status?, start?, end? }
@@ -57,8 +59,16 @@ export async function PATCH(
     },
   });
 
+  // If status just changed to CONFIRMED, pre-generate invoice number
+  if (status === "CONFIRMED" && !booking.invoiceNumber) {
+    ensureInvoiceNumber(id).catch((err) =>
+      console.error("[Invoice] Failed to generate invoice on CONFIRM:", err)
+    );
+  }
+
   return NextResponse.json(updated);
 }
+
 
 // DELETE /api/bookings/[id] — hard delete a booking
 export async function DELETE(

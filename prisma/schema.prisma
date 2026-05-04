@@ -94,12 +94,22 @@ model Booking {
   status      BookingStatus @default(CONFIRMED)
   seats       Int           @default(1)
 
+  // 🔥 Invoice fields
+  invoiceNumber      String?   @unique
+  invoiceGeneratedAt DateTime?
+
   user        User     @relation(fields: [userId], references: [id])
   resource    Resource @relation(fields: [resourceId], references: [id])
   provider    Provider @relation(fields: [providerId], references: [id])
   participants Participant[]
 
   createdAt   DateTime @default(now())
+}
+
+// Atomic per-year invoice sequence counter
+model InvoiceCounter {
+  year     Int @id
+  sequence Int @default(0)
 }
 
 model Participant {

@@ -4,6 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { BookingConfirmationEmail } from "@/emails/booking-confirmation";
+import { ensureInvoiceNumber } from "@/lib/invoice/ensureInvoiceNumber";
+
 
 // GET /api/bookings
 export async function GET(req: NextRequest) {
@@ -179,6 +181,11 @@ export async function POST(req: NextRequest) {
       }),
     });
   }
+
+  // Pre-generate invoice number asynchronously (fire-and-forget)
+  ensureInvoiceNumber(booking.id).catch((err) =>
+    console.error("[Invoice] Failed to pre-generate invoice number:", err)
+  );
 
   return NextResponse.json(booking, { status: 201 });
 }
