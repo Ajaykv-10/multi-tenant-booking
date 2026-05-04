@@ -82,12 +82,12 @@ export async function GET(
   // ── Render PDF ────────────────────────────────────────────────────────────
   try {
     const buffer = await renderToBuffer(
-      React.createElement(InvoiceDocument, { booking: bookingWithInvoice })
+      React.createElement(InvoiceDocument, { booking: bookingWithInvoice }) as any
     );
 
     const filename = `${bookingWithInvoice.invoiceNumber}.pdf`;
 
-    return new Response(buffer, {
+    return new Response(buffer as any, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
