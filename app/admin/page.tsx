@@ -38,7 +38,7 @@ async function getDashboardData() {
   ]);
 
   const revenue = resourcesWithBookings.reduce(
-    (sum, r) =>
+    (sum: number, r) =>
       sum + r.price * r.bookings.filter((b) => b.status === "CONFIRMED").length,
     0
   );
