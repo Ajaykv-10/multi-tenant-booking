@@ -1,0 +1,36 @@
+# ── Version control ───────────────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Dev/editor artefacts ─────────────────────────────────────────────────────
+.next
+node_modules
+.env
+.env.*
+!.env.example
+
+# ── Logs & test output ────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+coverage/
+.nyc_output
+
+# ── OS noise ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Next.js cache ─────────────────────────────────────────────────────────────
+.next/cache
+
+# ── TypeScript build info ────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Docker itself ────────────────────────────────────────────────────────────
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+README.md
+AGENTS.md
+CLAUDE.md
