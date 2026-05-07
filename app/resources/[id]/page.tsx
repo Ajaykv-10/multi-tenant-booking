@@ -3,17 +3,22 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { MoreDetailsSection } from "@/components/public/MoreDetailsSection";
 
 export default function ResourceDetailsPage() {
   const { id } = useParams() as { id: string };
   const [resource, setResource] = useState<any>(null);
+  const [customFields, setCustomFields] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/resources/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) setResource(data);
+    Promise.all([
+      fetch(`/api/resources/${id}`).then(res => res.json()),
+      fetch(`/api/resources/${id}/custom-fields`).then(res => res.json())
+    ])
+      .then(([resourceData, fieldsData]) => {
+        if (!resourceData.error) setResource(resourceData);
+        if (Array.isArray(fieldsData)) setCustomFields(fieldsData);
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -87,8 +92,10 @@ export default function ResourceDetailsPage() {
             </div>
           </div>
 
+          <MoreDetailsSection fields={customFields} />
+
           {/* Added Book Now CTA */}
-          <div className="pt-4 flex flex-col items-center border-t border-gray-100 dark:border-gray-700">
+          <div className="pt-8 mt-4 flex flex-col items-center border-t border-gray-100 dark:border-gray-700">
              <Link 
               href={`/book/${resource.id}`}
               className="inline-flex w-full sm:w-auto items-center justify-center px-12 py-4 border border-transparent text-lg font-bold rounded-xl shadow-sm shadow-blue-500/30 text-white bg-blue-600 hover:bg-blue-700 hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
