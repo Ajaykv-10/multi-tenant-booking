@@ -96,18 +96,18 @@ export function SortableFieldList({
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={fields.map((f) => f.id)}
+          items={fields.filter(f => f && f.id).map((f) => f.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-4">
-            {fields.map((field) => (
+            {fields.filter(f => f && f.id).map((field) => (
               <FieldCard
                 key={field.id}
                 field={field}
                 resourceId={resourceId}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
-                publishError={publishErrorIds.includes(field.label)}
+                publishError={publishErrorIds?.includes(field.label)}
               />
             ))}
           </div>

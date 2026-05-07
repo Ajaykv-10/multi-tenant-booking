@@ -67,7 +67,7 @@ export function EditFieldModal({ open, onClose, onSave, resourceId, field }: Edi
 
   return (
     <Modal open={open} onClose={onClose} title="Edit Custom Field" maxWidth="md">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-5">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
             {error}
@@ -174,14 +174,15 @@ export function EditFieldModal({ open, onClose, onSave, resourceId, field }: Edi
             Cancel
           </button>
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={loading || !label.trim()}
             className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition"
           >
             {loading ? "Saving..." : "Save Changes"}
           </button>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 }

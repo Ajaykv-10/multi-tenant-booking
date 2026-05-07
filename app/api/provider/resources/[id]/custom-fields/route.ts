@@ -89,10 +89,10 @@ export async function POST(
     });
 
     return NextResponse.json(customField, { status: 201 });
-  } catch (err) {
-    console.error(err);
+  } catch (err: any) {
+    console.error("Prisma Error:", err);
     return NextResponse.json(
-      { error: "Failed to create custom field" },
+      { error: err.message || "Failed to create custom field" },
       { status: 500 }
     );
   }
