@@ -4,7 +4,7 @@ interface Field {
   id: string;
   label: string;
   type: string;
-  value: string;
+  value: string | null;
   isRequired: boolean;
 }
 
