@@ -3,22 +3,29 @@ import { prisma } from "@/lib/prisma";
 import { requireProvider } from "@/lib/api-auth";
 
 // GET /api/provider/resources
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const { providerId, error } = await requireProvider();
   if (error) return error;
 
-  const resources = await prisma.resource.findMany({
-    where: { providerId },
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { bookings: true } },
-      customFields: {
-        orderBy: { order: "asc" }
-      }
-    },
-  });
+  try {
+    const resources = await prisma.resource.findMany({
+      where: { providerId },
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { bookings: true } },
+        customFields: {
+          orderBy: { order: "asc" }
+        }
+      },
+    });
 
-  return NextResponse.json(resources);
+    return NextResponse.json(resources);
+  } catch (error) {
+    console.error("Error fetching provider resources:", error);
+    return NextResponse.json({ error: "Internal Server Error", details: String(error) }, { status: 500 });
+  }
 }
 
 // POST /api/provider/resources
