@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireProvider } from "@/lib/api-auth";
 
+// GET /api/provider/resources/[id]
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { providerId, error } = await requireProvider();
+  if (error) return error;
+
+  const { id } = await params;
+  const resource = await prisma.resource.findUnique({ 
+    where: { id },
+    include: {
+      customFields: {
+        orderBy: { order: "asc" }
+      }
+    }
+  });
+
+  if (!resource || resource.providerId !== providerId) {
+    return NextResponse.json({ error: "Resource not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(resource);
+}
+
 // PATCH /api/provider/resources/[id]
 export async function PATCH(
   req: NextRequest,

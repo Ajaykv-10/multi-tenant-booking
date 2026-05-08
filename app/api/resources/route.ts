@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/resources?providerId=xxx
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const providerId = searchParams.get("providerId");
@@ -12,6 +14,11 @@ export async function GET(req: NextRequest) {
 
   const resources = await prisma.resource.findMany({
     where: { providerId },
+    include: {
+      customFields: {
+        orderBy: { order: "asc" }
+      }
+    },
     orderBy: { name: "asc" }
   });
 

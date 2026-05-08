@@ -37,10 +37,10 @@ export const ResourceCard = memo(function ResourceCard({ id, name, duration, pri
         )}
       </div>
       <Link 
-        href={`/book/${id}`}
+        href={`/resources/${id}`}
         className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors duration-200"
       >
-        Book Now
+        View Details
       </Link>
     </div>
   );

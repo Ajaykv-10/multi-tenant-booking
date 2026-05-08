@@ -1,14 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ResourceFormModal, type Resource } from "@/components/provider/resource-form-modal";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export interface Resource {
+  id: string;
+  name: string;
+  type: "EVENT" | "HOTEL";
+  status: "DRAFT" | "PUBLISHED";
+  duration: number;
+  price: number;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  isGroupBookingEnabled: boolean;
+  maxBookingPerUser: number | null;
+  _count: { bookings: number };
+}
 
 export default function ProviderResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Resource | null>(null);
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchResources = useCallback(async () => {
@@ -19,11 +33,6 @@ export default function ProviderResourcesPage() {
   }, []);
 
   useEffect(() => { fetchResources(); }, [fetchResources]);
-
-  function openModal(res?: Resource) {
-    setEditTarget(res || null);
-    setModalOpen(true);
-  }
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this resource?")) return;
@@ -42,15 +51,15 @@ export default function ProviderResourcesPage() {
           <h1 className="text-xl font-bold text-slate-900">Resources</h1>
           <p className="text-sm text-slate-500 mt-0.5">{resources.length} total resources</p>
         </div>
-        <button
-          onClick={() => openModal()}
+        <Link
+          href="/provider/resources/new/edit"
           className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           Add Resource
-        </button>
+        </Link>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -77,9 +86,14 @@ export default function ProviderResourcesPage() {
                   <tr key={res.id} className="hover:bg-slate-50/50 transition">
                     <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{res.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${res.type === 'HOTEL' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {res.type}
-                      </span>
+                      <div className="flex gap-2">
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${res.type === 'HOTEL' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {res.type}
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${res.status === 'PUBLISHED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                          {res.status || 'DRAFT'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                       {res.type === 'HOTEL' ? 'Stay-based' : `${res.duration} min`}
@@ -94,15 +108,15 @@ export default function ProviderResourcesPage() {
                       {res._count.bookings}
                     </td>
                     <td className="px-6 py-4 flex items-center gap-4 whitespace-nowrap">
-                      <button
-                        onClick={() => openModal(res)}
+                      <Link
+                        href={`/provider/resources/${res.id}/edit`}
                         className="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-800 transition"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                         Edit
-                      </button>
+                      </Link>
                       <button
                         onClick={() => handleDelete(res.id)}
                         disabled={deleteId === res.id || res._count.bookings > 0}
@@ -123,15 +137,7 @@ export default function ProviderResourcesPage() {
         </div>
       </div>
 
-      <ResourceFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        target={editTarget}
-        onSuccess={() => {
-          setModalOpen(false);
-          fetchResources();
-        }}
-      />
+
     </main>
   );
 }

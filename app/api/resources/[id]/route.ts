@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+// force HMR
+
+export const dynamic = "force-dynamic";
 
 // GET /api/resources/[id]
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -11,6 +14,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     include: {
       provider: {
         select: { id: true, name: true, category: { select: { name: true } } }
+      },
+      customFields: {
+        where: { value: { not: null } },
+        orderBy: { order: "asc" }
       }
     }
   });
@@ -19,5 +26,5 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     return NextResponse.json({ error: "Resource not found" }, { status: 404 });
   }
 
-  return NextResponse.json(resource);
+  return NextResponse.json({ ...resource, debug_compiled: true });
 }

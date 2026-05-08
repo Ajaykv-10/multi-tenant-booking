@@ -60,6 +60,7 @@ model Resource {
   id          String   @id @default(cuid())
   name        String
   type        ResourceType @default(EVENT)
+  status      ResourceStatus @default(DRAFT)
 
   providerId  String
   provider    Provider @relation(fields: [providerId], references: [id])
@@ -74,12 +75,40 @@ model Resource {
   startTime   String
   endTime     String
 
-  bookings    Booking[]
+  bookings     Booking[]
+  customFields ResourceCustomField[]
 }
 
 enum ResourceType {
   EVENT
   HOTEL
+}
+
+enum ResourceStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CustomFieldType {
+  short_text
+  description
+}
+
+model ResourceCustomField {
+  id          String          @id @default(cuid())
+  resourceId  String
+  resource    Resource        @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  label       String          @db.VarChar(100)
+  type        CustomFieldType
+  placeholder String?         @db.VarChar(150)
+  value       String?
+  isRequired  Boolean         @default(false)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([resourceId, order])
+  @@index([resourceId])
 }
 
 model Booking {
