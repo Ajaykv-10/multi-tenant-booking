@@ -84,7 +84,13 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { can } = usePermissions();
+  const { can, loading } = usePermissions();
+  
+  if (loading) return (
+    <aside className="w-64 fixed inset-y-0 left-0 z-40 bg-slate-900 flex flex-col items-center justify-center">
+       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+    </aside>
+  );
 
   return (
     <aside className="w-64 fixed inset-y-0 left-0 z-40 bg-slate-900 flex flex-col">

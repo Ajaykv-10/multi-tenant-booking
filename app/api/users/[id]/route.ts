@@ -9,7 +9,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requirePermission("users", "edit");
+  const { user: currentUser, error } = await requirePermission("users", "edit");
   if (error) return error;
 
   const { id } = await params;
@@ -17,7 +17,7 @@ export async function PATCH(
   const { name, email, password, role, providerId, roleId } = body;
 
   // Prevent admin from downgrading their own role
-  if (session!.user.id === id && role && role !== "ADMIN") {
+  if (currentUser.id === id && role && role !== "ADMIN") {
     return NextResponse.json(
       { error: "Cannot change your own role" },
       { status: 400 }
@@ -27,6 +27,14 @@ export async function PATCH(
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (currentUser.role === "PROVIDER") {
+      const pId = currentUser.ownedProvider?.id;
+      if (!pId || user.providerId !== pId) {
+          return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
+      }
   }
 
   if (role && !["ADMIN", "PROVIDER", "CUSTOMER"].includes(role)) {
@@ -74,13 +82,13 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requirePermission("users", "delete");
+  const { user: currentUser, error } = await requirePermission("users", "delete");
   if (error) return error;
 
   const { id } = await params;
 
   // Prevent self-deletion
-  if (session!.user.id === id) {
+  if (currentUser.id === id) {
     return NextResponse.json(
       { error: "Cannot delete your own account" },
       { status: 400 }
@@ -94,6 +102,14 @@ export async function DELETE(
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (currentUser.role === "PROVIDER") {
+      const pId = currentUser.ownedProvider?.id;
+      if (!pId || user.providerId !== pId) {
+          return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
+      }
   }
 
   if (user.ownedProvider) {

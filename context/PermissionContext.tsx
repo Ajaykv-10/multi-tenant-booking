@@ -24,7 +24,9 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = async () => {
-    if (status !== "authenticated") {
+    if (status === "loading") return;
+
+    if (status === "unauthenticated") {
         setPermissions({});
         setIsSuperAdmin(false);
         setLoading(false);
@@ -33,11 +35,16 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
     try {
       const res = await fetch("/api/auth/permissions");
+      if (!res.ok) {
+          console.error("[PermissionContext] API error:", res.status, res.statusText);
+          return;
+      }
       const data = await res.json();
+      console.log("[PermissionContext] Fetched permissions:", data);
       setPermissions(data.permissions || {});
       setIsSuperAdmin(data.isSuperAdmin || false);
     } catch (err) {
-      console.error("Failed to fetch permissions:", err);
+      console.error("[PermissionContext] Network error:", err);
     } finally {
       setLoading(false);
     }
@@ -50,11 +57,15 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const can = (module: string, action: string): boolean => {
     if (isSuperAdmin) return true;
     
-    // Check for wildcard module or wildcard action
-    if (permissions["*"]?.includes("*")) return true;
-    if (permissions[module]?.includes("*")) return true;
+    const hasWildcard = permissions["*"]?.includes("*") || permissions[module]?.includes("*");
+    const hasSpecific = permissions[module]?.includes(action) || false;
+    const result = hasWildcard || hasSpecific;
     
-    return permissions[module]?.includes(action) || false;
+    if (module === "roles") {
+        console.log(`[can] roles.${action} decision:`, { hasWildcard, hasSpecific, result, permissions: permissions["roles"] });
+    }
+    
+    return result;
   };
 
   return (

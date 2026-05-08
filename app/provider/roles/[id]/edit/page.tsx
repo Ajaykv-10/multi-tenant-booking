@@ -1,70 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FormField, inputClass, selectClass } from "@/components/admin/modal";
-import { ADMIN_MODULES, PROVIDER_MODULES } from "@/lib/permissions";
+import { FormField, inputClass } from "@/components/admin/modal";
+import { PROVIDER_MODULES } from "@/lib/permissions";
 
 const ACTIONS = ["view", "create", "edit", "delete"] as const;
 
-export default function CreateRolePage() {
+export default function EditProviderRolePage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = use(paramsPromise);
+  const { id } = params;
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     description: "",
-    scope: "ADMIN" as "ADMIN" | "PROVIDER",
     permissions: [] as string[],
+    isSystem: false,
   });
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const modules = ADMIN_MODULES;
+  const modules = PROVIDER_MODULES;
+
+  useEffect(() => {
+    async function fetchRole() {
+      const res = await fetch(`/api/admin/roles/${id}`);
+      if (!res.ok) {
+        setError("Failed to load role");
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setForm({
+        name: data.name,
+        description: data.description || "",
+        permissions: data.permissions,
+        isSystem: data.isSystem,
+      });
+      setLoading(false);
+    }
+    fetchRole();
+  }, [id]);
 
   function togglePermission(mod: string, act: string) {
+    if (form.isSystem) return;
     const perm = `${mod}.${act}`;
     let newPermissions = [...form.permissions];
 
     if (newPermissions.includes(perm)) {
-      // Remove permission
       newPermissions = newPermissions.filter((p) => p !== perm);
-      
-      // If we remove 'view', we must remove all other actions for this module
       if (act === "view") {
         newPermissions = newPermissions.filter((p) => !p.startsWith(`${mod}.`));
       }
     } else {
-      // Add permission
       newPermissions.push(perm);
-      
-      // If we add any action, we must ensure 'view' is also added
       if (act !== "view" && !newPermissions.includes(`${mod}.view`)) {
         newPermissions.push(`${mod}.view`);
       }
     }
-
     setForm({ ...form, permissions: newPermissions });
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.isSystem) return;
     setError(null);
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/admin/roles", {
-        method: "POST",
+      const res = await fetch(`/api/admin/roles/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name,
+          description: form.description,
+          permissions: form.permissions,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Failed to create role");
+        setError(data.error || "Failed to update role");
         return;
       }
 
-      router.push("/admin/roles");
+      router.push("/provider/roles");
       router.refresh();
     } catch (err) {
       setError("An unexpected error occurred");
@@ -73,11 +95,13 @@ export default function CreateRolePage() {
     }
   }
 
+  if (loading) return <div className="p-10 text-center text-slate-400">Loading...</div>;
+
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-4">
         <Link 
-          href="/admin/roles"
+          href="/provider/roles"
           className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-slate-700 transition shadow-sm"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,8 +109,12 @@ export default function CreateRolePage() {
           </svg>
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Create Role</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Define a new set of permissions</p>
+          <h1 className="text-xl font-bold text-slate-900">
+            {form.isSystem ? "View Role" : "Edit Role"}
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {form.isSystem ? "System roles cannot be modified" : "Update role details and permissions"}
+          </p>
         </div>
       </div>
 
@@ -98,28 +126,26 @@ export default function CreateRolePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Role Name" htmlFor="role-name">
-              <input 
-                id="role-name" 
-                required 
-                type="text" 
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g., Marketing Admin" 
-                className={inputClass} 
-              />
-            </FormField>
-          </div>
+          <FormField label="Role Name" htmlFor="role-name">
+            <input 
+              id="role-name" 
+              required 
+              disabled={form.isSystem}
+              type="text" 
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className={`${inputClass} ${form.isSystem ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
+            />
+          </FormField>
 
           <FormField label="Description (Optional)" htmlFor="role-desc">
             <textarea 
               id="role-desc" 
               rows={2}
+              disabled={form.isSystem}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Describe what this role is for..." 
-              className={inputClass} 
+              className={`${inputClass} ${form.isSystem ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
             />
           </FormField>
         </div>
@@ -127,7 +153,6 @@ export default function CreateRolePage() {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-sm font-semibold text-slate-900">Permission Matrix</h2>
-            <p className="text-xs text-slate-500">Enable specific actions for each module</p>
           </div>
           
           <table className="w-full text-sm">
@@ -145,15 +170,14 @@ export default function CreateRolePage() {
                   <td className="px-6 py-4 font-medium text-slate-900 capitalize">{mod.replace("_", " ")}</td>
                   {ACTIONS.map(act => {
                     const isChecked = form.permissions.includes(`${mod}.${act}`);
-                    const isDisabled = act !== "view" && !form.permissions.includes(`${mod}.view`) && !isChecked;
-                    
                     return (
                       <td key={act} className="px-4 py-4 text-center">
                         <input 
                           type="checkbox"
                           checked={isChecked}
+                          disabled={form.isSystem}
                           onChange={() => togglePermission(mod, act)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 transition cursor-pointer"
+                          className={`w-4 h-4 rounded text-violet-600 focus:ring-violet-500 border-slate-300 transition ${form.isSystem ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                         />
                       </td>
                     );
@@ -164,21 +188,23 @@ export default function CreateRolePage() {
           </table>
         </div>
 
-        <div className="flex gap-3 pt-2">
-          <Link
-            href="/admin/roles"
-            className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-3 rounded-xl transition text-center shadow-sm"
-          >
-            Cancel
-          </Link>
-          <button 
-            type="submit" 
-            disabled={submitting}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold text-sm px-4 py-3 rounded-xl transition shadow-sm"
-          >
-            {submitting ? "Creating Role..." : "Create Role"}
-          </button>
-        </div>
+        {!form.isSystem && (
+          <div className="flex gap-3 pt-2">
+            <Link
+              href="/provider/roles"
+              className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-3 rounded-xl transition text-center shadow-sm"
+            >
+              Cancel
+            </Link>
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm px-4 py-3 rounded-xl transition shadow-sm"
+            >
+              {submitting ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

@@ -22,15 +22,13 @@ export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [scopeFilter, setScopeFilter] = useState("");
 
   const fetchRoles = useCallback(async () => {
     setLoading(true);
-    const url = scopeFilter ? `/api/admin/roles?scope=${scopeFilter}` : "/api/admin/roles";
-    const res = await fetch(url);
+    const res = await fetch("/api/admin/roles?scope=ADMIN");
     if (res.ok) setRoles(await res.json());
     setLoading(false);
-  }, [scopeFilter]);
+  }, []);
 
   useEffect(() => {
     fetchRoles();
@@ -58,19 +56,10 @@ export default function RolesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Roles & Permissions</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage granular access control for Admins and Providers</p>
+          <h1 className="text-xl font-bold text-slate-900">Admin Roles</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Manage granular access control for administrative staff</p>
         </div>
         <div className="flex items-center gap-3">
-          <select 
-            value={scopeFilter} 
-            onChange={(e) => setScopeFilter(e.target.value)}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          >
-            <option value="">All Scopes</option>
-            <option value="ADMIN">Admin Only</option>
-            <option value="PROVIDER">Provider Only</option>
-          </select>
           <Link
             href="/admin/roles/create"
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-sm"
@@ -110,8 +99,8 @@ export default function RolesPage() {
                       </div>
                       <p className="text-xs text-slate-400 line-clamp-1 max-w-xs">{role.description || "No description"}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={role.scope} />
+                    <td className="px-6 py-4 text-slate-600 font-medium">
+                      ADMIN
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       <span className="font-medium text-slate-900">{role.permissions.length}</span>

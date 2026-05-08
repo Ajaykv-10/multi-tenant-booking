@@ -3,46 +3,39 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FormField, inputClass, selectClass } from "@/components/admin/modal";
-import { ADMIN_MODULES, PROVIDER_MODULES } from "@/lib/permissions";
+import { FormField, inputClass } from "@/components/admin/modal";
+import { PROVIDER_MODULES } from "@/lib/permissions";
 
 const ACTIONS = ["view", "create", "edit", "delete"] as const;
 
-export default function CreateRolePage() {
+export default function CreateProviderRolePage() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     description: "",
-    scope: "ADMIN" as "ADMIN" | "PROVIDER",
+    scope: "PROVIDER" as const,
     permissions: [] as string[],
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const modules = ADMIN_MODULES;
+  const modules = PROVIDER_MODULES;
 
   function togglePermission(mod: string, act: string) {
     const perm = `${mod}.${act}`;
     let newPermissions = [...form.permissions];
 
     if (newPermissions.includes(perm)) {
-      // Remove permission
       newPermissions = newPermissions.filter((p) => p !== perm);
-      
-      // If we remove 'view', we must remove all other actions for this module
       if (act === "view") {
         newPermissions = newPermissions.filter((p) => !p.startsWith(`${mod}.`));
       }
     } else {
-      // Add permission
       newPermissions.push(perm);
-      
-      // If we add any action, we must ensure 'view' is also added
       if (act !== "view" && !newPermissions.includes(`${mod}.view`)) {
         newPermissions.push(`${mod}.view`);
       }
     }
-
     setForm({ ...form, permissions: newPermissions });
   }
 
@@ -64,7 +57,7 @@ export default function CreateRolePage() {
         return;
       }
 
-      router.push("/admin/roles");
+      router.push("/provider/roles");
       router.refresh();
     } catch (err) {
       setError("An unexpected error occurred");
@@ -77,7 +70,7 @@ export default function CreateRolePage() {
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-4">
         <Link 
-          href="/admin/roles"
+          href="/provider/roles"
           className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-slate-700 transition shadow-sm"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,8 +78,8 @@ export default function CreateRolePage() {
           </svg>
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Create Role</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Define a new set of permissions</p>
+          <h1 className="text-xl font-bold text-slate-900">Create Staff Role</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Define permissions for your team members</p>
         </div>
       </div>
 
@@ -98,19 +91,17 @@ export default function CreateRolePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Role Name" htmlFor="role-name">
-              <input 
-                id="role-name" 
-                required 
-                type="text" 
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g., Marketing Admin" 
-                className={inputClass} 
-              />
-            </FormField>
-          </div>
+          <FormField label="Role Name" htmlFor="role-name">
+            <input 
+              id="role-name" 
+              required 
+              type="text" 
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="e.g., Booking Manager" 
+              className={inputClass} 
+            />
+          </FormField>
 
           <FormField label="Description (Optional)" htmlFor="role-desc">
             <textarea 
@@ -127,7 +118,7 @@ export default function CreateRolePage() {
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-sm font-semibold text-slate-900">Permission Matrix</h2>
-            <p className="text-xs text-slate-500">Enable specific actions for each module</p>
+            <p className="text-xs text-slate-500">Only showing modules relevant to your provider portal</p>
           </div>
           
           <table className="w-full text-sm">
@@ -145,15 +136,13 @@ export default function CreateRolePage() {
                   <td className="px-6 py-4 font-medium text-slate-900 capitalize">{mod.replace("_", " ")}</td>
                   {ACTIONS.map(act => {
                     const isChecked = form.permissions.includes(`${mod}.${act}`);
-                    const isDisabled = act !== "view" && !form.permissions.includes(`${mod}.view`) && !isChecked;
-                    
                     return (
                       <td key={act} className="px-4 py-4 text-center">
                         <input 
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => togglePermission(mod, act)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 transition cursor-pointer"
+                          className="w-4 h-4 rounded text-violet-600 focus:ring-violet-500 border-slate-300 transition cursor-pointer"
                         />
                       </td>
                     );
@@ -166,7 +155,7 @@ export default function CreateRolePage() {
 
         <div className="flex gap-3 pt-2">
           <Link
-            href="/admin/roles"
+            href="/provider/roles"
             className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-3 rounded-xl transition text-center shadow-sm"
           >
             Cancel
@@ -174,9 +163,9 @@ export default function CreateRolePage() {
           <button 
             type="submit" 
             disabled={submitting}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold text-sm px-4 py-3 rounded-xl transition shadow-sm"
+            className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-semibold text-sm px-4 py-3 rounded-xl transition shadow-sm"
           >
-            {submitting ? "Creating Role..." : "Create Role"}
+            {submitting ? "Creating..." : "Create Role"}
           </button>
         </div>
       </form>

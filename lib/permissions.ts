@@ -16,6 +16,7 @@ export const PROVIDER_MODULES = [
   "bookings",
   "custom_fields",
   "roles",
+  "users",
   "dashboard"
 ] as const;
 

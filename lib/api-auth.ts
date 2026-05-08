@@ -107,8 +107,8 @@ export async function requirePermission(module: string, action: string) {
     };
   }
 
-  // 1. Super Admin Bypass
-  if (user.role === "ADMIN" && user.accessRole?.name === "Super Admin") {
+  // 1. Super Admin Bypass (Fallback if no accessRole but user role is ADMIN)
+  if (user.role === "ADMIN" && (!user.accessRole || user.accessRole.name === "Super Admin")) {
     return { session, user, error: null };
   }
 

@@ -10,11 +10,18 @@ const menuItems = [
   { href: "/provider/resources", label: "Resources", matchExact: false, module: "resources" },
   { href: "/provider/bookings", label: "Bookings", matchExact: false, module: "bookings" },
   { href: "/provider/roles", label: "Roles", matchExact: false, module: "roles" },
+  { href: "/provider/users", label: "Users", matchExact: false, module: "users" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { can } = usePermissions();
+  const { can, loading } = usePermissions();
+
+  if (loading) return (
+    <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center justify-center z-20">
+       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+    </aside>
+  );
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-20">
