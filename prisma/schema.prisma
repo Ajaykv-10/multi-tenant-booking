@@ -15,6 +15,10 @@ model User {
   name      String?
   role      Role     @default(CUSTOMER)
 
+  // 🔥 Role Relation
+  roleId    String?
+  accessRole AccessRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
   // 🔥 Provider Staff Relation
   providerId String?
   provider   Provider? @relation("ProviderStaff", fields: [providerId], references: [id])
@@ -49,6 +53,9 @@ model Provider {
 
   // 🔥 STAFF
   users       User[]   @relation("ProviderStaff")
+
+  roleId      String?
+  accessRole  AccessRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   resources   Resource[]
   bookings    Booking[]
@@ -163,4 +170,24 @@ enum Role {
 enum BookingStatus {
   CONFIRMED
   CANCELLED
+}
+
+model AccessRole {
+  id          String      @id @default(uuid())
+  name        String      @unique @db.VarChar(60)
+  description String?     @db.Text
+  scope       RoleScope
+  permissions Json        // Array of strings ["module.action"]
+  isSystem    Boolean     @default(false)
+  
+  users       User[]
+  providers   Provider[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum RoleScope {
+  ADMIN
+  PROVIDER
 }

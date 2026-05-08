@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/categories — list all categories with provider count
 export async function GET() {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("categories", "view");
   if (error) return error;
 
   const categories = await prisma.category.findMany({
@@ -18,7 +18,7 @@ export async function GET() {
 // POST /api/categories — create a new category
 // Body: { name: string, slug: string }
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("categories", "create");
   if (error) return error;
 
   const body = await req.json();

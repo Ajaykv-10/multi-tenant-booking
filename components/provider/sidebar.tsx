@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { usePermissions } from "@/context/PermissionContext";
 
 const menuItems = [
-  { href: "/provider", label: "Dashboard", matchExact: true },
-  { href: "/provider/resources", label: "Resources", matchExact: false },
-  { href: "/provider/bookings", label: "Bookings", matchExact: false },
+  { href: "/provider", label: "Dashboard", matchExact: true, module: "dashboard" },
+  { href: "/provider/resources", label: "Resources", matchExact: false, module: "resources" },
+  { href: "/provider/bookings", label: "Bookings", matchExact: false, module: "bookings" },
+  { href: "/provider/roles", label: "Roles", matchExact: false, module: "roles" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { can } = usePermissions();
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-20">
@@ -28,25 +31,27 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto py-6 px-3">
         <div className="space-y-1">
-          {menuItems.map((item) => {
-            const isActive = item.matchExact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+          {menuItems
+            .filter(item => can(item.module, "view"))
+            .map((item) => {
+              const isActive = item.matchExact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                  isActive
-                    ? "bg-violet-500/10 text-violet-400"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                    isActive
+                      ? "bg-violet-500/10 text-violet-400"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
         </div>
       </div>
 

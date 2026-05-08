@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
 
 // PATCH /api/users/[id] — update user details
@@ -9,12 +9,12 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requireAdmin();
+  const { error, session } = await requirePermission("users", "edit");
   if (error) return error;
 
   const { id } = await params;
   const body = await req.json();
-  const { name, email, password, role, providerId } = body;
+  const { name, email, password, role, providerId, roleId } = body;
 
   // Prevent admin from downgrading their own role
   if (session!.user.id === id && role && role !== "ADMIN") {
@@ -57,8 +57,12 @@ export async function PATCH(
       ...(hashedPassword && { password: hashedPassword }),
       ...(role && { role }),
       ...(providerId !== undefined && { providerId: providerId || null }),
+      ...(roleId !== undefined && { roleId: roleId || null }),
     },
-    include: { provider: { select: { id: true, name: true } } },
+    include: { 
+      provider: { select: { id: true, name: true } },
+      accessRole: true,
+    },
   });
 
   const { password: _pw, ...safeUser } = updated;
@@ -70,7 +74,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requireAdmin();
+  const { error, session } = await requirePermission("users", "delete");
   if (error) return error;
 
   const { id } = await params;

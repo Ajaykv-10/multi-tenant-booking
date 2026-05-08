@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Modal, FormField, inputClass, selectClass } from "@/components/admin/modal";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { usePermissions } from "@/context/PermissionContext";
 
-interface Provider { id: string; name: string; }
+interface Role { id: string; name: string; scope: "ADMIN" | "PROVIDER"; }
 interface User {
   id: string;
   email: string;
   name: string | null;
   role: "ADMIN" | "PROVIDER" | "CUSTOMER";
+  roleId: string | null;
+  accessRole: { name: string } | null;
   createdAt: string;
   provider: { id: string; name: string } | null;
   ownedProvider: { id: string; name: string } | null;
@@ -18,14 +21,16 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "" });
+  const [form, setForm] = useState({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "", roleId: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState("");
   const [editTarget, setEditTarget] = useState<User | null>(null);
+  const { can } = usePermissions();
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -37,6 +42,7 @@ export default function UsersPage() {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
   useEffect(() => { fetch("/api/providers").then((r) => r.json()).then(setProviders); }, []);
+  useEffect(() => { fetch("/api/admin/roles").then((r) => r.json()).then(setRoles); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +59,7 @@ export default function UsersPage() {
         name: form.name || undefined,
         role: form.role,
         providerId: form.role === "PROVIDER" ? form.providerId || undefined : undefined,
+        roleId: form.roleId || null,
       };
 
       const res = await fetch(url, {
@@ -63,7 +70,7 @@ export default function UsersPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
       setModalOpen(false);
-      setForm({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "" });
+      setForm({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "", roleId: "" });
       setEditTarget(null);
       fetchUsers();
     } finally { setSubmitting(false); }
@@ -78,11 +85,11 @@ export default function UsersPage() {
         password: "", // empty for edit
         name: u.name || "",
         role: u.role,
-        providerId: u.provider?.id || "",
+        roleId: u.roleId || "",
       });
     } else {
       setEditTarget(null);
-      setForm({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "" });
+      setForm({ email: "", password: "", name: "", role: "CUSTOMER", providerId: "", roleId: "" });
     }
     setModalOpen(true);
   }
@@ -112,15 +119,18 @@ export default function UsersPage() {
             <option value="PROVIDER">Provider</option>
             <option value="CUSTOMER">Customer</option>
           </select>
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add User
-          </button>
+          </select>
+          {can("users", "create") && (
+            <button
+              onClick={() => openModal()}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add User
+            </button>
+          )}
         </div>
       </div>
 
@@ -147,7 +157,14 @@ export default function UsersPage() {
                       <p className="text-xs text-slate-400">{u.email}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={u.role} />
+                      <div className="flex flex-col gap-1">
+                        <StatusBadge status={u.role} />
+                        {u.accessRole && (
+                          <span className="text-[10px] font-bold text-slate-500 uppercase px-1.5 py-0.5 bg-slate-100 rounded self-start">
+                            {u.accessRole.name}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-600">
                       {u.ownedProvider?.name ? (
@@ -162,22 +179,26 @@ export default function UsersPage() {
                       {new Date(u.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-6 py-4 flex items-center gap-4">
-                      <button
-                        onClick={() => openModal(u)}
-                        className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
-                      </button>
-                      <button onClick={() => handleDelete(u.id)} disabled={deleteId === u.id}
-                        className="flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-30 transition">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        {deleteId === u.id ? "Deleting..." : "Delete"}
-                      </button>
+                      {can("users", "edit") && (
+                        <button
+                          onClick={() => openModal(u)}
+                          className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                      )}
+                      {can("users", "delete") && (
+                        <button onClick={() => handleDelete(u.id)} disabled={deleteId === u.id}
+                          className="flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-30 transition">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          {deleteId === u.id ? "Deleting..." : "Delete"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -206,6 +227,18 @@ export default function UsersPage() {
               </select>
             </FormField>
           </div>
+          {form.role !== "CUSTOMER" && (
+            <FormField label={`Assign ${form.role} Role`} htmlFor="usr-access-role">
+              <select id="usr-access-role" value={form.roleId}
+                onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))}
+                className={selectClass}>
+                <option value="">— No Role (Default) —</option>
+                {roles.filter(r => r.scope === form.role).map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </FormField>
+          )}
           <FormField label="Email Address" htmlFor="usr-email">
             <input id="usr-email" type="email" required value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}

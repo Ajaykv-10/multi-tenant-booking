@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { checkPermission } from "./permissions";
 
 type AdminResult =
   | { session: Session; error: null }
@@ -77,4 +78,52 @@ export async function requireProvider(): Promise<ProviderResult> {
   }
 
   return { session, providerId: user.ownedProvider.id, error: null };
+}
+
+/**
+ * Universal permission guard.
+ * Checks both session role (ADMIN/PROVIDER) and granular AccessRole permissions.
+ */
+export async function requirePermission(module: string, action: string) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return {
+      session: null,
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Fetch user with role
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { accessRole: true, ownedProvider: { select: { id: true } } },
+  });
+
+  if (!user) {
+    return {
+      session: null,
+      error: NextResponse.json({ error: "User not found" }, { status: 404 }),
+    };
+  }
+
+  // 1. Super Admin Bypass
+  if (user.role === "ADMIN" && user.accessRole?.name === "Super Admin") {
+    return { session, user, error: null };
+  }
+
+  // 2. Check granular permissions
+  const hasPerm = checkPermission(user.accessRole?.permissions, module, action);
+
+  if (!hasPerm) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        { error: `Forbidden — Missing ${module}.${action} permission` },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, user, error: null };
 }

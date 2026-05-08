@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
 
 // GET /api/users — list all users
 // Query: ?role=ADMIN|PROVIDER|CUSTOMER
 export async function GET(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("users", "view");
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     include: {
       provider: { select: { id: true, name: true } },
       ownedProvider: { select: { id: true, name: true } },
+      accessRole: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -30,11 +31,11 @@ export async function GET(req: NextRequest) {
 // POST /api/users — create a user
 // Body: { email, password, name?, role, providerId? }
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("users", "create");
   if (error) return error;
 
   const body = await req.json();
-  const { email, password, name, role, providerId } = body;
+  const { email, password, name, role, providerId, roleId } = body;
 
   if (!email || !password || !role) {
     return NextResponse.json(
@@ -74,10 +75,12 @@ export async function POST(req: NextRequest) {
       name: name?.trim() || null,
       role,
       providerId: role === "PROVIDER" && providerId ? providerId : null,
+      roleId: roleId || null,
     },
     include: {
       provider: { select: { id: true, name: true } },
       ownedProvider: { select: { id: true, name: true } },
+      accessRole: true,
     },
   });
 

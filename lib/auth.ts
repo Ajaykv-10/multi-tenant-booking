@@ -57,6 +57,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name ?? undefined,
           role: user.role,
+          roleId: user.roleId,
         };
       },
     }),
@@ -80,6 +81,7 @@ export const authOptions: NextAuthOptions = {
           if (existing) {
             user.id = existing.id;
             user.role = existing.role;
+            user.roleId = existing.roleId;
           } else {
             const created = await prisma.user.create({
               data: {
@@ -90,6 +92,7 @@ export const authOptions: NextAuthOptions = {
             });
             user.id = created.id;
             user.role = "CUSTOMER";
+            user.roleId = null;
           }
         } catch {
           return false; // Block sign-in on DB error
@@ -103,6 +106,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.roleId = user.roleId;
       }
       return token;
     },
@@ -112,6 +116,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.roleId = token.roleId;
       }
       return session;
     },

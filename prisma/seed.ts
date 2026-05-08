@@ -6,6 +6,63 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...\n");
 
+  // ─── 0. ROLES ────────────────────────────────────────────────────────────────
+  const superAdminRole = await prisma.accessRole.upsert({
+    where: { name: "Super Admin" },
+    update: {
+      permissions: [
+        "categories.view", "categories.create", "categories.edit", "categories.delete",
+        "providers.view", "providers.create", "providers.edit", "providers.delete",
+        "users.view", "users.create", "users.edit", "users.delete",
+        "roles.view", "roles.create", "roles.edit", "roles.delete",
+        "bookings.view", "bookings.create", "bookings.edit", "bookings.delete",
+        "dashboard.view"
+      ],
+    },
+    create: {
+      name: "Super Admin",
+      description: "Full access to all administrative modules.",
+      scope: "ADMIN",
+      permissions: [
+        "categories.view", "categories.create", "categories.edit", "categories.delete",
+        "providers.view", "providers.create", "providers.edit", "providers.delete",
+        "users.view", "users.create", "users.edit", "users.delete",
+        "roles.view", "roles.create", "roles.edit", "roles.delete",
+        "bookings.view", "bookings.create", "bookings.edit", "bookings.delete",
+        "dashboard.view"
+      ],
+      isSystem: true,
+    },
+  });
+
+  const providerOwnerRole = await prisma.accessRole.upsert({
+    where: { name: "Provider Owner" },
+    update: {
+      permissions: [
+        "resources.view", "resources.create", "resources.edit", "resources.delete",
+        "bookings.view", "bookings.edit",
+        "custom_fields.view", "custom_fields.create", "custom_fields.edit", "custom_fields.delete",
+        "roles.view",
+        "dashboard.view"
+      ],
+    },
+    create: {
+      name: "Provider Owner",
+      description: "Full access to manage your own provider resources and bookings.",
+      scope: "PROVIDER",
+      permissions: [
+        "resources.view", "resources.create", "resources.edit", "resources.delete",
+        "bookings.view", "bookings.edit",
+        "custom_fields.view", "custom_fields.create", "custom_fields.edit", "custom_fields.delete",
+        "roles.view",
+        "dashboard.view"
+      ],
+      isSystem: true,
+    },
+  });
+
+  console.log("✅ Roles seeded");
+
   // ─── 1. CATEGORIES ───────────────────────────────────────────────────────────
   const fitnessCategory = await prisma.category.upsert({
     where: { slug: "fitness" },
@@ -36,6 +93,7 @@ async function main() {
       name: "Super Admin",
       password: adminPassword,
       role: "ADMIN",
+      roleId: superAdminRole.id,
     },
   });
 
@@ -48,6 +106,7 @@ async function main() {
       name: "Alex Fitness",
       password: providerPassword,
       role: "PROVIDER",
+      roleId: providerOwnerRole.id,
     },
   });
 
@@ -60,6 +119,7 @@ async function main() {
       name: "Sophie Glow",
       password: providerPassword,
       role: "PROVIDER",
+      roleId: providerOwnerRole.id,
     },
   });
 
@@ -97,6 +157,7 @@ async function main() {
       name: "AlexFit Gym",
       categoryId: fitnessCategory.id,
       ownerId: gymOwner.id,
+      roleId: providerOwnerRole.id,
       users: { connect: { id: gymStaff.id } },
     },
   });
@@ -108,6 +169,7 @@ async function main() {
       name: "Sophie's Beauty Studio",
       categoryId: beautyCategory.id,
       ownerId: salonOwner.id,
+      roleId: providerOwnerRole.id,
     },
   });
 
