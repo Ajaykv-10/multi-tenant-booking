@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
 
   const resources = await prisma.resource.findMany({
     where: { providerId },
+    include: {
+      customFields: {
+        orderBy: { order: "asc" }
+      }
+    },
     orderBy: { name: "asc" }
   });
 
