@@ -119,7 +119,6 @@ export default function UsersPage() {
             <option value="PROVIDER">Provider</option>
             <option value="CUSTOMER">Customer</option>
           </select>
-          </select>
           {can("users", "create") && (
             <button
               onClick={() => openModal()}
