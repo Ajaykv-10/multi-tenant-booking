@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"   // ✅ FIXED
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -58,6 +59,8 @@ model Provider {
 model Resource {
   id          String   @id @default(cuid())
   name        String
+  type        ResourceType @default(EVENT)
+  status      ResourceStatus @default(DRAFT)
 
   providerId  String
   provider    Provider @relation(fields: [providerId], references: [id])
@@ -65,10 +68,47 @@ model Resource {
   duration    Int
   price       Int
 
+  capacity    Int      @default(1)
+  isGroupBookingEnabled Boolean @default(false)
+  maxBookingPerUser     Int?
+
   startTime   String
   endTime     String
 
-  bookings    Booking[]
+  bookings     Booking[]
+  customFields ResourceCustomField[]
+}
+
+enum ResourceType {
+  EVENT
+  HOTEL
+}
+
+enum ResourceStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CustomFieldType {
+  short_text
+  description
+}
+
+model ResourceCustomField {
+  id          String          @id @default(cuid())
+  resourceId  String
+  resource    Resource        @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  label       String          @db.VarChar(100)
+  type        CustomFieldType
+  placeholder String?         @db.VarChar(150)
+  value       String?
+  isRequired  Boolean         @default(false)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([resourceId, order])
+  @@index([resourceId])
 }
 
 model Booking {
@@ -82,10 +122,34 @@ model Booking {
   end         DateTime
 
   status      BookingStatus @default(CONFIRMED)
+  seats       Int           @default(1)
+
+  // 🔥 Invoice fields
+  invoiceNumber      String?   @unique
+  invoiceGeneratedAt DateTime?
 
   user        User     @relation(fields: [userId], references: [id])
   resource    Resource @relation(fields: [resourceId], references: [id])
   provider    Provider @relation(fields: [providerId], references: [id])
+  participants Participant[]
+
+  createdAt   DateTime @default(now())
+}
+
+// Atomic per-year invoice sequence counter
+model InvoiceCounter {
+  year     Int @id
+  sequence Int @default(0)
+}
+
+model Participant {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
 
   createdAt   DateTime @default(now())
 }
