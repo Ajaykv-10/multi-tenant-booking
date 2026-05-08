@@ -12,6 +12,9 @@ export async function GET() {
     orderBy: { name: "asc" },
     include: {
       _count: { select: { bookings: true } },
+      customFields: {
+        orderBy: { order: "asc" }
+      }
     },
   });
 

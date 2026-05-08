@@ -11,7 +11,14 @@ export async function GET(
   if (error) return error;
 
   const { id } = await params;
-  const resource = await prisma.resource.findUnique({ where: { id } });
+  const resource = await prisma.resource.findUnique({ 
+    where: { id },
+    include: {
+      customFields: {
+        orderBy: { order: "asc" }
+      }
+    }
+  });
 
   if (!resource || resource.providerId !== providerId) {
     return NextResponse.json({ error: "Resource not found" }, { status: 404 });
