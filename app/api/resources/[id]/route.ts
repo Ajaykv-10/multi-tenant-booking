@@ -9,22 +9,27 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const params = await props.params;
   const { id } = params;
 
-  const resource = await prisma.resource.findUnique({
-    where: { id },
-    include: {
-      provider: {
-        select: { id: true, name: true, category: { select: { name: true } } }
-      },
-      customFields: {
-        where: { value: { not: null } },
-        orderBy: { order: "asc" }
+  try {
+    const resource = await prisma.resource.findUnique({
+      where: { id },
+      include: {
+        provider: {
+          select: { id: true, name: true, category: { select: { name: true } } }
+        },
+        customFields: {
+          where: { value: { not: null } },
+          orderBy: { order: "asc" }
+        }
       }
+    });
+
+    if (!resource) {
+      return NextResponse.json({ error: "Resource not found" }, { status: 404 });
     }
-  });
 
-  if (!resource) {
-    return NextResponse.json({ error: "Resource not found" }, { status: 404 });
+    return NextResponse.json({ ...resource, debug_compiled: true });
+  } catch (error) {
+    console.error("Error fetching resource details:", error);
+    return NextResponse.json({ error: "Internal Server Error", details: String(error) }, { status: 500 });
   }
-
-  return NextResponse.json({ ...resource, debug_compiled: true });
 }

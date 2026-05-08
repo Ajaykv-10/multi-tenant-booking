@@ -11,20 +11,25 @@ export async function GET(
   if (error) return error;
 
   const { id } = await params;
-  const resource = await prisma.resource.findUnique({ 
-    where: { id },
-    include: {
-      customFields: {
-        orderBy: { order: "asc" }
+  try {
+    const resource = await prisma.resource.findUnique({ 
+      where: { id },
+      include: {
+        customFields: {
+          orderBy: { order: "asc" }
+        }
       }
+    });
+
+    if (!resource || resource.providerId !== providerId) {
+      return NextResponse.json({ error: "Resource not found" }, { status: 404 });
     }
-  });
 
-  if (!resource || resource.providerId !== providerId) {
-    return NextResponse.json({ error: "Resource not found" }, { status: 404 });
+    return NextResponse.json(resource);
+  } catch (error) {
+    console.error("Error fetching provider resource:", error);
+    return NextResponse.json({ error: "Internal Server Error", details: String(error) }, { status: 500 });
   }
-
-  return NextResponse.json(resource);
 }
 
 // PATCH /api/provider/resources/[id]
