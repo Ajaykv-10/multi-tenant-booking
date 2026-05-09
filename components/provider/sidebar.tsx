@@ -39,7 +39,14 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto py-6 px-3">
         <div className="space-y-1">
           {menuItems
-            .filter(item => can(item.module, "view"))
+            .map(item => {
+              const visible = can(item.module, "view");
+              if (!visible && (item.module === "users" || item.module === "roles")) {
+                console.log(`[ProviderSidebar] Hiding ${item.label} because can("${item.module}", "view") is false`);
+              }
+              return { ...item, visible };
+            })
+            .filter(item => item.visible)
             .map((item) => {
               const isActive = item.matchExact
                 ? pathname === item.href

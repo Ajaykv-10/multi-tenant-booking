@@ -24,47 +24,69 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = async () => {
+    console.log("[PermissionContext] fetchPermissions status:", status);
     if (status === "loading") return;
 
     if (status === "unauthenticated") {
-        setPermissions({});
-        setIsSuperAdmin(false);
-        setLoading(false);
-        return;
+      console.log("[PermissionContext] Unauthenticated state detected");
+      setPermissions({});
+      setIsSuperAdmin(false);
+      setLoading(false);
+      return;
     }
 
-    try {
-      const res = await fetch("/api/auth/permissions");
-      if (!res.ok) {
-          console.error("[PermissionContext] API error:", res.status, res.statusText);
-          return;
-      }
-      const data = await res.json();
-      console.log("[PermissionContext] Fetched permissions:", data);
-      setPermissions(data.permissions || {});
-      setIsSuperAdmin(data.isSuperAdmin || false);
-    } catch (err) {
-      console.error("[PermissionContext] Network error:", err);
-    } finally {
+    if (session?.user) {
+      const user = session.user as any;
+      console.log("[PermissionContext] DEBUG Session User:", {
+        email: user.email,
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin,
+        isOwner: user.isOwner,
+        providerId: user.providerId,
+        permsCount: user.permissions?.length
+      });
+
+      const permsArray = user.permissions || [];
+      const map: Record<string, string[]> = {};
+
+      permsArray.forEach((p: string) => {
+        const [mod, act] = p.split(".");
+        if (mod && act) {
+          if (!map[mod]) map[mod] = [];
+          map[mod].push(act);
+        }
+      });
+
+      setPermissions(map);
+      setIsSuperAdmin(user.isSuperAdmin || false);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchPermissions();
-  }, [status]);
+  }, [status, session]);
 
   const can = (module: string, action: string): boolean => {
     if (isSuperAdmin) return true;
-    
+    console.log("isSuperAdmin", isSuperAdmin)
+
+    // Resolve owner status from session
+    const isOwner = (session?.user as any)?.isOwner;
+    if (isOwner) return true;
+
     const hasWildcard = permissions["*"]?.includes("*") || permissions[module]?.includes("*");
     const hasSpecific = permissions[module]?.includes(action) || false;
     const result = hasWildcard || hasSpecific;
-    
-    if (module === "roles") {
-        console.log(`[can] roles.${action} decision:`, { hasWildcard, hasSpecific, result, permissions: permissions["roles"] });
+
+    if (!result && (module === "users" || module === "roles")) {
+      console.warn(`[PermissionContext] Access DENIED for ${module}.${action}. User info:`, {
+        isSuperAdmin,
+        isOwner,
+        perms: permissions[module]
+      });
     }
-    
+
     return result;
   };
 

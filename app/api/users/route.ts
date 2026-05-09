@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
 
   const whereClause: any = role ? { role } : {};
   if (currentUser.role === "PROVIDER") {
-      const pId = currentUser.ownedProvider?.id;
+      const pId = (currentUser as any).providerId || currentUser.ownedProvider?.id;
       if (pId) {
           whereClause.providerId = pId;
-          whereClause.role = "PROVIDER"; // Providers can only see other providers (staff)
+          whereClause.role = "PROVIDER";
       } else {
           return NextResponse.json({ error: "Provider not found" }, { status: 403 });
       }
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   let finalRole = role;
 
   if (currentUser.role === "PROVIDER") {
-    const pId = currentUser.ownedProvider?.id;
+    const pId = (currentUser as any).providerId || currentUser.ownedProvider?.id;
     if (!pId) return NextResponse.json({ error: "Provider not found" }, { status: 403 });
     finalProviderId = pId;
     finalRole = "PROVIDER";

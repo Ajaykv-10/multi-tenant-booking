@@ -60,24 +60,26 @@ export async function requireProvider(): Promise<ProviderResult> {
     };
   }
 
-  // Get the provider ID that this user owns
+  // Get the provider ID (either they own it or they are staff)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { ownedProvider: { select: { id: true } } },
+    select: { providerId: true, ownedProvider: { select: { id: true } } },
   });
 
-  if (!user?.ownedProvider) {
+  const providerId = user?.ownedProvider?.id || user?.providerId;
+
+  if (!providerId) {
     return {
       session: null,
       providerId: null,
       error: NextResponse.json(
-        { error: "Forbidden — You must own a provider account" },
+        { error: "Forbidden — You must belong to a provider account" },
         { status: 403 }
       ),
     };
   }
 
-  return { session, providerId: user.ownedProvider.id, error: null };
+  return { session, providerId, error: null };
 }
 
 /**
@@ -107,8 +109,16 @@ export async function requirePermission(module: string, action: string) {
     };
   }
 
+  console.log(`[requirePermission] User: ${user.email}, Role: ${user.role}, AccessRole: ${user.accessRole?.name}`);
+
   // 1. Super Admin Bypass (Fallback if no accessRole but user role is ADMIN)
-  if (user.role === "ADMIN" && (!user.accessRole || user.accessRole.name === "Super Admin")) {
+  const roleName = user.accessRole?.name?.toLowerCase().trim();
+  if (user.role === "ADMIN" && (!user.accessRole || roleName === "super admin")) {
+    return { session, user, error: null };
+  }
+
+  // 1b. Provider Owner Bypass (Full access to provider dashboard)
+  if (user.role === "PROVIDER" && user.ownedProvider) {
     return { session, user, error: null };
   }
 

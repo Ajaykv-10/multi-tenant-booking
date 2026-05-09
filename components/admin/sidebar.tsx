@@ -113,7 +113,14 @@ export function Sidebar() {
           Main Menu
         </p>
         {navItems
-          .filter(item => !item.module || can(item.module, item.action || "view"))
+          .map(item => {
+            const visible = !item.module || can(item.module, item.action || "view");
+            if (!visible && (item.module === "users" || item.module === "roles")) {
+              console.log(`[Sidebar] Hiding ${item.label} because can("${item.module}", "${item.action || "view"}") is false`);
+            }
+            return { ...item, visible };
+          })
+          .filter(item => item.visible)
           .map(({ href, label, icon }) => {
             const isActive =
               href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

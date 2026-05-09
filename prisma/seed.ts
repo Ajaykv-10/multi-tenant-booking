@@ -42,7 +42,8 @@ async function main() {
         "resources.view", "resources.create", "resources.edit", "resources.delete",
         "bookings.view", "bookings.edit",
         "custom_fields.view", "custom_fields.create", "custom_fields.edit", "custom_fields.delete",
-        "roles.view",
+        "roles.view", "roles.create", "roles.edit", "roles.delete",
+        "users.view", "users.create", "users.edit", "users.delete",
         "dashboard.view"
       ],
     },
@@ -54,7 +55,8 @@ async function main() {
         "resources.view", "resources.create", "resources.edit", "resources.delete",
         "bookings.view", "bookings.edit",
         "custom_fields.view", "custom_fields.create", "custom_fields.edit", "custom_fields.delete",
-        "roles.view",
+        "roles.view", "roles.create", "roles.edit", "roles.delete",
+        "users.view", "users.create", "users.edit", "users.delete",
         "dashboard.view"
       ],
       isSystem: true,
@@ -87,7 +89,10 @@ async function main() {
   // Admin
   const admin = await prisma.user.upsert({
     where: { email: "admin@bookingengine.com" },
-    update: {},
+    update: {
+      role: "ADMIN",
+      roleId: superAdminRole.id,
+    },
     create: {
       email: "admin@bookingengine.com",
       name: "Super Admin",
@@ -100,7 +105,10 @@ async function main() {
   // Provider 1 — Gym owner
   const gymOwner = await prisma.user.upsert({
     where: { email: "gymowner@bookingengine.com" },
-    update: {},
+    update: {
+      role: "PROVIDER",
+      roleId: providerOwnerRole.id,
+    },
     create: {
       email: "gymowner@bookingengine.com",
       name: "Alex Fitness",
@@ -113,7 +121,10 @@ async function main() {
   // Provider 2 — Salon owner
   const salonOwner = await prisma.user.upsert({
     where: { email: "salonowner@bookingengine.com" },
-    update: {},
+    update: {
+      role: "PROVIDER",
+      roleId: providerOwnerRole.id,
+    },
     create: {
       email: "salonowner@bookingengine.com",
       name: "Sophie Glow",
@@ -126,7 +137,9 @@ async function main() {
   // Staff member for gym
   const gymStaff = await prisma.user.upsert({
     where: { email: "gymstaff@bookingengine.com" },
-    update: {},
+    update: {
+      role: "PROVIDER",
+    },
     create: {
       email: "gymstaff@bookingengine.com",
       name: "James Trainer",
@@ -138,7 +151,9 @@ async function main() {
   // Customer
   const customer = await prisma.user.upsert({
     where: { email: "customer@bookingengine.com" },
-    update: {},
+    update: {
+      role: "CUSTOMER",
+    },
     create: {
       email: "customer@bookingengine.com",
       name: "John Doe",

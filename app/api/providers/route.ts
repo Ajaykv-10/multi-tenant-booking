@@ -62,5 +62,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // 🔥 Update owner's providerId for consistent scoping
+  await prisma.user.update({
+    where: { id: ownerId },
+    data: { providerId: provider.id },
+  });
+
   return NextResponse.json(provider, { status: 201 });
 }

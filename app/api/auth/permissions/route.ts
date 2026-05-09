@@ -24,7 +24,8 @@ export async function GET() {
 
   // If Super Admin, we can return a special flag or full map
   // Fallback: If they have the legacy "ADMIN" role but no granular role yet, treat as Super Admin
-  if (user.role === "ADMIN" && (!user.accessRole || user.accessRole.name === "Super Admin")) {
+  const roleName = user.accessRole?.name?.toLowerCase().trim();
+  if (user.role === "ADMIN" && (!user.accessRole || roleName === "super admin")) {
       return NextResponse.json({
           isSuperAdmin: true,
           permissions: { "*": ["*"] }

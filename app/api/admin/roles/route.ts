@@ -10,14 +10,23 @@ export const dynamic = "force-dynamic";
  * List all roles, optional ?scope= filter
  */
 export async function GET(req: NextRequest) {
-  const { error } = await requirePermission("roles", "view");
+  const { user: currentUser, error } = await requirePermission("roles", "view");
   if (error) return error;
 
   const { searchParams } = req.nextUrl;
   const scope = searchParams.get("scope");
+  const whereClause: any = scope ? { scope: scope as any } : {};
+  
+  if (currentUser.role === "PROVIDER") {
+    const pId = (currentUser as any).providerId || currentUser.ownedProvider?.id;
+    whereClause.AND = [
+      { scope: "PROVIDER" },
+      { OR: [{ providerId: pId }, { providerId: null }] }
+    ];
+  }
 
   const roles = await prisma.accessRole.findMany({
-    where: scope ? { scope: scope as any } : {},
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       _count: {
@@ -34,7 +43,7 @@ export async function GET(req: NextRequest) {
  * Create a new role
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requirePermission("roles", "create");
+  const { user: currentUser, error } = await requirePermission("roles", "create");
   if (error) return error;
 
   try {
@@ -73,12 +82,19 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
     }
 
+    let providerId = null;
+    if (currentUser.role === "PROVIDER") {
+      providerId = (currentUser as any).providerId || currentUser.ownedProvider?.id;
+      if (!providerId) return NextResponse.json({ error: "Provider not found" }, { status: 403 });
+    }
+
     const role = await prisma.accessRole.create({
       data: {
         name: name.trim(),
         description: description?.trim(),
         scope,
         permissions,
+        providerId,
         isSystem: false,
       },
     });
