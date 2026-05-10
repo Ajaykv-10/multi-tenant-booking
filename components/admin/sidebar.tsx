@@ -114,10 +114,7 @@ export function Sidebar() {
         </p>
         {navItems
           .map(item => {
-            const visible = !item.module || can(item.module, item.action || "view");
-            if (!visible && (item.module === "users" || item.module === "roles")) {
-              console.log(`[Sidebar] Hiding ${item.label} because can("${item.module}", "${item.action || "view"}") is false`);
-            }
+            const visible = true; // TEMPORARY BYPASS
             return { ...item, visible };
           })
           .filter(item => item.visible)

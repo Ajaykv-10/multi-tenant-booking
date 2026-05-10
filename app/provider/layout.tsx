@@ -15,18 +15,23 @@ export default async function ProviderLayout({
     redirect("/login?error=unauthorized");
   }
 
-  // Ensure they own a provider
+  // Ensure they belong to a provider (either owner or staff)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { ownedProvider: true },
+    select: { 
+      ownedProvider: { select: { id: true } },
+      providerId: true 
+    },
   });
 
-  if (!user?.ownedProvider) {
+  const providerId = user?.ownedProvider?.id || user?.providerId;
+
+  if (!providerId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50 text-center px-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">No Provider Account</h1>
-          <p className="text-slate-500">You must own a provider account to access this dashboard.</p>
+          <p className="text-slate-500">You must be associated with a provider account to access this dashboard.</p>
         </div>
       </div>
     );

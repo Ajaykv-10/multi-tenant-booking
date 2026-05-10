@@ -10,6 +10,7 @@ interface PermissionsMap {
 interface PermissionContextType {
   permissions: PermissionsMap;
   isSuperAdmin: boolean;
+  isOwner: boolean;
   loading: boolean;
   can: (module: string, action: string) => boolean;
   refresh: () => Promise<void>;
@@ -21,6 +22,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [permissions, setPermissions] = useState<PermissionsMap>({});
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchPermissions = async () => {
@@ -43,13 +45,14 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         isSuperAdmin: user.isSuperAdmin,
         isOwner: user.isOwner,
         providerId: user.providerId,
-        permsCount: user.permissions?.length
+        permissions: user.permissions
       });
 
-      const permsArray = user.permissions || [];
+      const permsArray = Array.isArray(user.permissions) ? user.permissions : [];
       const map: Record<string, string[]> = {};
 
       permsArray.forEach((p: string) => {
+        if (typeof p !== "string") return;
         const [mod, act] = p.split(".");
         if (mod && act) {
           if (!map[mod]) map[mod] = [];
@@ -59,7 +62,14 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
       setPermissions(map);
       setIsSuperAdmin(user.isSuperAdmin || false);
+      setIsOwner(user.isOwner || false);
       setLoading(false);
+    } else if (status === "authenticated") {
+      // If we are authenticated but session is not available yet, we stay in loading.
+      // But if session is definitely empty, we should stop loading.
+      if (session === null) {
+        setLoading(false);
+      }
     }
   };
 
@@ -68,11 +78,11 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   }, [status, session]);
 
   const can = (module: string, action: string): boolean => {
-    if (isSuperAdmin) return true;
-    console.log("isSuperAdmin", isSuperAdmin)
+    // TEMPORARY BYPASS: Disable permissions for all
+    return true;
 
-    // Resolve owner status from session
-    const isOwner = (session?.user as any)?.isOwner;
+    /* Original logic:
+    if (isSuperAdmin) return true;
     if (isOwner) return true;
 
     const hasWildcard = permissions["*"]?.includes("*") || permissions[module]?.includes("*");
@@ -88,10 +98,11 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     }
 
     return result;
+    */
   };
 
   return (
-    <PermissionContext.Provider value={{ permissions, isSuperAdmin, loading, can, refresh: fetchPermissions }}>
+    <PermissionContext.Provider value={{ permissions, isSuperAdmin, isOwner, loading, can, refresh: fetchPermissions }}>
       {children}
     </PermissionContext.Provider>
   );

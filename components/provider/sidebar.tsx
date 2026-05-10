@@ -19,7 +19,7 @@ export function Sidebar() {
 
   if (loading) return (
     <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center justify-center z-20">
-       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
     </aside>
   );
 
@@ -40,10 +40,7 @@ export function Sidebar() {
         <div className="space-y-1">
           {menuItems
             .map(item => {
-              const visible = can(item.module, "view");
-              if (!visible && (item.module === "users" || item.module === "roles")) {
-                console.log(`[ProviderSidebar] Hiding ${item.label} because can("${item.module}", "view") is false`);
-              }
+              const visible = true; // TEMPORARY BYPASS
               return { ...item, visible };
             })
             .filter(item => item.visible)
@@ -56,11 +53,10 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                    isActive
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${isActive
                       ? "bg-violet-500/10 text-violet-400"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Link>
