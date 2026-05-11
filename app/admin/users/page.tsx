@@ -88,6 +88,7 @@ export default function UsersPage() {
         password: "", // empty for edit
         name: u.name || "",
         role: u.role,
+        providerId: u.provider?.id || "",
         roleId: u.roleId || "",
       });
     } else {
