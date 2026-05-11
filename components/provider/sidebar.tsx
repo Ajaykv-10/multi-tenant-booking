@@ -11,7 +11,6 @@ const menuItems = [
   { href: "/provider/bookings", label: "Bookings", matchExact: false, module: "bookings" },
   { href: "/provider/roles", label: "Roles", matchExact: false, module: "roles" },
   { href: "/provider/users", label: "Users", matchExact: false, module: "users" },
-  { href: "/provider/profile", label: "Provider Profile", matchExact: false, module: "provider" },
 ];
 
 export function Sidebar() {
@@ -55,8 +54,8 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${isActive
-                      ? "bg-violet-500/10 text-violet-400"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    ? "bg-violet-500/10 text-violet-400"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                     }`}
                 >
                   {item.label}
