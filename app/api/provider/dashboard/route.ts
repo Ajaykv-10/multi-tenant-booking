@@ -7,6 +7,10 @@ export async function GET() {
   const { providerId, error } = await requirePermission("dashboard", "view");
   if (error) return error;
 
+  if (!providerId) {
+    return NextResponse.json({ error: "Provider association not found" }, { status: 404 });
+  }
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   

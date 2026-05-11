@@ -7,6 +7,10 @@ export async function GET(req: NextRequest) {
   const { providerId, error } = await requirePermission("bookings", "view");
   if (error) return error;
 
+  if (!providerId) {
+    return NextResponse.json({ error: "Provider ID not found for user" }, { status: 400 });
+  }
+
   const { searchParams } = new URL(req.url);
   const dateParam = searchParams.get("date");
 
