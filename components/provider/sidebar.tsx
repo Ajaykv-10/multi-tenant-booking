@@ -40,7 +40,7 @@ export function Sidebar() {
         <div className="space-y-1">
           {menuItems
             .map(item => {
-              const visible = true; // TEMPORARY BYPASS
+              const visible = item.module ? can(item.module, "view") : true;
               return { ...item, visible };
             })
             .filter(item => item.visible)

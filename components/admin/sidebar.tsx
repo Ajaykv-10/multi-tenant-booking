@@ -114,7 +114,7 @@ export function Sidebar() {
         </p>
         {navItems
           .map(item => {
-            const visible = true; // TEMPORARY BYPASS
+            const visible = item.module && item.action ? can(item.module, item.action) : true;
             return { ...item, visible };
           })
           .filter(item => item.visible)

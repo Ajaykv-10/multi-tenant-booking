@@ -122,10 +122,6 @@ export async function requirePermission(module: string, action: string) {
     return { session, user, error: null };
   }
 
-  // TEMPORARY BYPASS: Disable permissions for all
-  return { session, user, error: null };
-
-  /* Original logic:
   const hasPerm = checkPermission(user.accessRole?.permissions, module, action);
 
   if (!hasPerm) {
@@ -139,5 +135,4 @@ export async function requirePermission(module: string, action: string) {
   }
 
   return { session, user, error: null };
-  */
 }

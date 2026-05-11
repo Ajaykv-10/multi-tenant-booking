@@ -78,10 +78,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   }, [status, session]);
 
   const can = (module: string, action: string): boolean => {
-    // TEMPORARY BYPASS: Disable permissions for all
-    return true;
-
-    /* Original logic:
     if (isSuperAdmin) return true;
     if (isOwner) return true;
 
@@ -98,7 +94,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     }
 
     return result;
-    */
   };
 
   return (
