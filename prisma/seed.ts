@@ -8,7 +8,7 @@ async function main() {
 
   // ─── 0. ROLES ────────────────────────────────────────────────────────────────
   const superAdminRole = await prisma.accessRole.upsert({
-    where: { name: "Super Admin" },
+    where: { name_providerId: { name: "Super Admin", providerId: null } },
     update: {
       permissions: [
         "categories.view", "categories.create", "categories.edit", "categories.delete",
@@ -36,7 +36,7 @@ async function main() {
   });
 
   const providerOwnerRole = await prisma.accessRole.upsert({
-    where: { name: "Provider Owner" },
+    where: { name_providerId: { name: "Provider Owner", providerId: null } },
     update: {
       permissions: [
         "resources.view", "resources.create", "resources.edit", "resources.delete",
