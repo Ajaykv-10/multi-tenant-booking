@@ -9,7 +9,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user: currentUser, error } = await requirePermission("users", "edit");
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "edit");
   if (error) return error;
 
   const { id } = await params;
@@ -31,7 +31,6 @@ export async function PATCH(
 
   // Ownership check for providers
   if (currentUser.role === "PROVIDER") {
-      const pId = currentUser.ownedProvider?.id;
       if (!pId || user.providerId !== pId) {
           return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
       }
@@ -82,7 +81,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { user: currentUser, error } = await requirePermission("users", "delete");
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "delete");
   if (error) return error;
 
   const { id } = await params;
@@ -106,7 +105,6 @@ export async function DELETE(
 
   // Ownership check for providers
   if (currentUser.role === "PROVIDER") {
-      const pId = currentUser.ownedProvider?.id;
       if (!pId || user.providerId !== pId) {
           return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
       }

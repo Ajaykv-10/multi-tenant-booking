@@ -86,12 +86,19 @@ export async function requireProvider(): Promise<ProviderResult> {
  * Universal permission guard.
  * Checks both session role (ADMIN/PROVIDER) and granular AccessRole permissions.
  */
-export async function requirePermission(module: string, action: string) {
+export async function requirePermission(module: string, action: string): Promise<{ 
+  session: Session | null; 
+  user: any; 
+  providerId: string | null; 
+  error: NextResponse | null 
+}> {
   const session = await getServerSession(authOptions);
 
   if (!session) {
     return {
       session: null,
+      user: null,
+      providerId: null,
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
   }
@@ -105,21 +112,25 @@ export async function requirePermission(module: string, action: string) {
   if (!user) {
     return {
       session: null,
+      user: null,
+      providerId: null,
       error: NextResponse.json({ error: "User not found" }, { status: 404 }),
     };
   }
+
+  const providerId = user.ownedProvider?.id || user.providerId || null;
 
   console.log(`[requirePermission] User: ${user.email}, Role: ${user.role}, AccessRole: ${user.accessRole?.name}`);
 
   // 1. Super Admin Bypass (Fallback if no accessRole but user role is ADMIN)
   const roleName = user.accessRole?.name?.toLowerCase().trim();
   if (user.role === "ADMIN" && (!user.accessRole || roleName === "super admin")) {
-    return { session, user, error: null };
+    return { session, user, providerId, error: null };
   }
 
   // 1b. Provider Owner Bypass (Full access to provider dashboard)
   if (user.role === "PROVIDER" && user.ownedProvider) {
-    return { session, user, error: null };
+    return { session, user, providerId, error: null };
   }
 
   const hasPerm = checkPermission(user.accessRole?.permissions, module, action);
@@ -127,6 +138,8 @@ export async function requirePermission(module: string, action: string) {
   if (!hasPerm) {
     return {
       session: null,
+      user: null,
+      providerId: null,
       error: NextResponse.json(
         { error: `Forbidden — Missing ${module}.${action} permission` },
         { status: 403 }
@@ -134,5 +147,5 @@ export async function requirePermission(module: string, action: string) {
     };
   }
 
-  return { session, user, error: null };
+  return { session, user, providerId, error: null };
 }

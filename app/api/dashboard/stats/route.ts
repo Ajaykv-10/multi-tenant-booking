@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 export async function GET() {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("dashboard", "view");
   if (error) return error;
 
   const thirtyDaysAgo = new Date();

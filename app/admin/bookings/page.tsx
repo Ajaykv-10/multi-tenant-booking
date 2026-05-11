@@ -26,14 +26,14 @@ export default function BookingsPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
-  
+
   // Edit State
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Booking | null>(null);
   const [form, setForm] = useState({ date: "", startTime: "", endTime: "", status: "CONFIRMED" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  console.log("providers", providers)
   // Filters
   const [filters, setFilters] = useState({
     providerId: "",
@@ -63,8 +63,8 @@ export default function BookingsPage() {
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
   useEffect(() => {
-    fetch("/api/categories").then((r) => r.json()).then(setCategories);
-    fetch("/api/providers").then((r) => r.json()).then(setProviders);
+    fetch("/api/categories").then((r) => r.json()).then(setCategories).catch((err) => setError(err.error));
+    fetch("/api/providers").then((r) => r.json()).then(setProviders).catch((err) => setError(err.error));
   }, []);
 
   async function handleCancel(id: string) {
@@ -84,14 +84,14 @@ export default function BookingsPage() {
   function openEditModal(b: Booking) {
     setError(null);
     setEditTarget(b);
-    
+
     // Convert to local date strings for inputs
     const startObj = new Date(b.start);
     const endObj = new Date(b.end);
-    
+
     // Format YYYY-MM-DD for date input
     const [datePart] = startObj.toISOString().split("T");
-    
+
     // Format HH:mm for time inputs using local time
     const startH = startObj.getHours().toString().padStart(2, "0");
     const startM = startObj.getMinutes().toString().padStart(2, "0");
@@ -130,7 +130,7 @@ export default function BookingsPage() {
 
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      
+
       setModalOpen(false);
       setEditTarget(null);
       fetchBookings();
@@ -178,7 +178,7 @@ export default function BookingsPage() {
             onChange={(e) => setFilters((f) => ({ ...f, providerId: e.target.value }))}
             className={selectClass}>
             <option value="">All providers</option>
-            {providers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {(providers || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
 
           <select value={filters.categoryId}
@@ -306,7 +306,7 @@ export default function BookingsPage() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Edit Booking">
         <form onSubmit={handleEditSubmit} className="space-y-4">
           {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">{error}</div>}
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Status" htmlFor="book-stat">
               <select id="book-stat" required value={form.status}

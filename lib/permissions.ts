@@ -17,7 +17,8 @@ export const PROVIDER_MODULES = [
   "custom_fields",
   "roles",
   "users",
-  "dashboard"
+  "dashboard",
+  "provider"
 ] as const;
 
 export type AdminModule = (typeof ADMIN_MODULES)[number];

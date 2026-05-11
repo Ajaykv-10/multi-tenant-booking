@@ -11,6 +11,7 @@ const menuItems = [
   { href: "/provider/bookings", label: "Bookings", matchExact: false, module: "bookings" },
   { href: "/provider/roles", label: "Roles", matchExact: false, module: "roles" },
   { href: "/provider/users", label: "Users", matchExact: false, module: "users" },
+  { href: "/provider/profile", label: "Provider Profile", matchExact: false, module: "provider" },
 ];
 
 export function Sidebar() {

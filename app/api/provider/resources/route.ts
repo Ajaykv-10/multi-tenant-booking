@@ -6,12 +6,11 @@ import { requirePermission } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { user, error } = await requirePermission("resources", "view");
+  const { providerId, error } = await requirePermission("resources", "view");
   if (error) return error;
 
-  const providerId = user?.ownedProvider?.id;
   if (!providerId) {
-    return NextResponse.json({ error: "Forbidden — No provider owned" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden — No provider association found" }, { status: 403 });
   }
 
   try {
@@ -35,12 +34,11 @@ export async function GET() {
 
 // POST /api/provider/resources
 export async function POST(req: NextRequest) {
-  const { user, error } = await requirePermission("resources", "create");
+  const { providerId, error } = await requirePermission("resources", "create");
   if (error) return error;
 
-  const providerId = user?.ownedProvider?.id;
   if (!providerId) {
-    return NextResponse.json({ error: "Forbidden — No provider owned" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden — No provider association found" }, { status: 403 });
   }
 
   const body = await req.json();
