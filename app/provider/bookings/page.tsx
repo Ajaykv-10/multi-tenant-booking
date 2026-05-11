@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { BookingTimeline } from "@/components/provider/booking-timeline";
 import { BookingDetailModal, type BookingData } from "@/components/provider/booking-detail-modal";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 interface Resource {
   id: string;
@@ -75,47 +76,49 @@ export default function ProviderBookingsPage() {
   }
 
   return (
-    <main className="p-8 max-w-[1600px] w-full flex flex-col flex-1 h-[calc(100vh-64px)]">
-      <div className="flex items-center justify-between shrink-0 mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Schedule</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage your daily appointments vertically</p>
+    <PermissionGuard module="bookings" action="view">
+      <main className="p-8 max-w-[1600px] w-full flex flex-col flex-1 h-[calc(100vh-64px)]">
+        <div className="flex items-center justify-between shrink-0 mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Schedule</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Manage your daily appointments vertically</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label htmlFor="date-picker" className="text-sm font-medium text-slate-600">Date:</label>
+            <input
+              id="date-picker"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition"
+            />
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <label htmlFor="date-picker" className="text-sm font-medium text-slate-600">Date:</label>
-          <input
-            id="date-picker"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition"
+        {/* The Timeline takes remaining height */}
+        <div className="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+          {loading && (
+            <div className="absolute inset-0 z-40 bg-white/50 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+            </div>
+          )}
+          
+          <BookingTimeline
+            resources={resources}
+            bookings={bookings}
+            onBookingClick={handleBookingClick}
           />
         </div>
-      </div>
 
-      {/* The Timeline takes remaining height */}
-      <div className="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
-        {loading && (
-          <div className="absolute inset-0 z-40 bg-white/50 backdrop-blur-sm flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
-          </div>
-        )}
-        
-        <BookingTimeline
-          resources={resources}
-          bookings={bookings}
-          onBookingClick={handleBookingClick}
+        <BookingDetailModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          booking={selectedBooking}
+          onCancelTrigger={handleCancel}
+          cancellingId={cancellingId}
         />
-      </div>
-
-      <BookingDetailModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        booking={selectedBooking}
-        onCancelTrigger={handleCancel}
-        cancellingId={cancellingId}
-      />
-    </main>
+      </main>
+    </PermissionGuard>
   );
 }

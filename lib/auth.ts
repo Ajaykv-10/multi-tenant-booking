@@ -4,6 +4,8 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+console.log(">>> [Auth:Lib] Loading auth configuration file...");
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -52,11 +54,36 @@ export const authOptions: NextAuthOptions = {
           throw new Error("INVALID_PASSWORD");
         }
 
+        const userWithRole = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { accessRole: true, ownedProvider: true },
+        });
+
+        // Resolve status
+        const isSuperAdmin = userWithRole?.role === "ADMIN" && 
+          (!userWithRole.accessRole || userWithRole.accessRole.name.toLowerCase().trim() === "super admin");
+        
+        const isOwner = userWithRole?.role === "PROVIDER" && !!userWithRole.ownedProvider;
+        const providerId = userWithRole?.ownedProvider?.id || user.providerId;
+
+        console.log("[Auth:Authorize] User logged in:", {
+          email: user.email,
+          role: user.role,
+          isOwner,
+          providerId,
+          hasRole: !!userWithRole?.accessRole
+        });
+
         return {
           id: user.id,
           email: user.email,
           name: user.name ?? undefined,
           role: user.role,
+          roleId: user.roleId,
+          providerId,
+          isSuperAdmin,
+          isOwner,
+          permissions: (userWithRole?.accessRole?.permissions as string[]) || [],
         };
       },
     }),
@@ -78,8 +105,19 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (existing) {
+            const userWithRole = await prisma.user.findUnique({
+              where: { id: existing.id },
+              include: { accessRole: true, ownedProvider: true },
+            });
             user.id = existing.id;
             user.role = existing.role;
+            user.roleId = existing.roleId;
+            (user as any).isSuperAdmin = existing.role === "ADMIN" && 
+              (!userWithRole?.accessRole || userWithRole.accessRole.name.toLowerCase().trim() === "super admin");
+            (user as any).isOwner = existing.role === "PROVIDER" && !!userWithRole?.ownedProvider;
+            (user as any).providerId = userWithRole?.ownedProvider?.id || existing.providerId;
+            (user as any).permissions = userWithRole?.accessRole?.permissions || [];
+            console.log("[Auth:SignIn:Google] Existing user found:", { email: user.email, perms: (user as any).permissions });
           } else {
             const created = await prisma.user.create({
               data: {
@@ -90,6 +128,11 @@ export const authOptions: NextAuthOptions = {
             });
             user.id = created.id;
             user.role = "CUSTOMER";
+            user.roleId = null;
+            (user as any).isSuperAdmin = false;
+            (user as any).isOwner = false;
+            (user as any).providerId = null;
+            (user as any).permissions = [];
           }
         } catch {
           return false; // Block sign-in on DB error
@@ -103,16 +146,59 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.roleId = user.roleId;
+        token.providerId = (user as any).providerId;
+        token.isSuperAdmin = (user as any).isSuperAdmin;
+        token.isOwner = (user as any).isOwner;
+        token.permissions = (user as any).permissions || [];
+        console.log("[Auth:JWT] Initial sign-in token created:", { email: token.email });
       }
+
+      // ── STALE SESSION FIX ──────────────────────────────────────────────────
+      // If the token exists but is missing fields we recently added, fetch them.
+      if (token.id && !token.permissions) {
+        console.log("[Auth:JWT] Fetching missing data for stale token:", token.email);
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          include: { accessRole: true, ownedProvider: true },
+        });
+
+        if (dbUser) {
+          token.role = dbUser.role;
+          token.roleId = dbUser.roleId;
+          token.providerId = dbUser.ownedProvider?.id || dbUser.providerId;
+          token.isSuperAdmin = dbUser.role === "ADMIN" && 
+            (!dbUser.accessRole || dbUser.accessRole.name.toLowerCase().trim() === "super admin");
+          token.isOwner = dbUser.role === "PROVIDER" && !!dbUser.ownedProvider;
+          token.permissions = (dbUser.accessRole?.permissions as string[]) || [];
+          console.log("[Auth:JWT] Stale token refreshed successfully");
+        }
+      }
+
       return token;
     },
 
-    // Expose id + role on the session object
+    // Expose permissions on the session object
     async session({ session, token }) {
+      console.log("[Auth:Session] Callback triggered with token:", { 
+        email: token.email, 
+        hasPerms: !!token.permissions,
+        permsCount: Array.isArray(token.permissions) ? token.permissions.length : 'not an array'
+      });
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).roleId = token.roleId;
+        (session.user as any).providerId = token.providerId;
+        (session.user as any).isSuperAdmin = token.isSuperAdmin;
+        (session.user as any).isOwner = token.isOwner;
+        (session.user as any).permissions = token.permissions || [];
       }
+      console.log("[Auth:Session] Final session user:", {
+        email: session.user?.email,
+        role: (session.user as any).role,
+        permsCount: (session.user as any).permissions?.length
+      });
       return session;
     },
   },

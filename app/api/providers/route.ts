@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/providers — list all providers with category, owner, and counts
 export async function GET() {
+  const { error } = await requirePermission("providers", "view");
+  if (error) return error;
+
   const providers = await prisma.provider.findMany({
     include: {
       category: { select: { id: true, name: true, slug: true } },
@@ -19,7 +22,7 @@ export async function GET() {
 // POST /api/providers — create a provider
 // Body: { name: string, categoryId: string, ownerId: string }
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { error } = await requirePermission("providers", "create");
   if (error) return error;
 
   const body = await req.json();
@@ -60,6 +63,12 @@ export async function POST(req: NextRequest) {
       owner: { select: { id: true, name: true, email: true } },
       _count: { select: { users: true, resources: true, bookings: true } },
     },
+  });
+
+  // 🔥 Update owner's providerId for consistent scoping
+  await prisma.user.update({
+    where: { id: ownerId },
+    data: { providerId: provider.id },
   });
 
   return NextResponse.json(provider, { status: 201 });

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -9,74 +9,126 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?
-  name      String?
-  role      Role     @default(CUSTOMER)
-
-  // 🔥 Provider Staff Relation
-  providerId String?
-  provider   Provider? @relation("ProviderStaff", fields: [providerId], references: [id])
-
-  // 🔥 Provider Owner Relation (1:1)
-  ownedProvider Provider? @relation("ProviderOwner")
-
-  // 🔥 Customer bookings
-  bookings  Booking[]
-
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String?
+  name          String?
+  role          Role        @default(CUSTOMER)
+  providerId    String?
+  createdAt     DateTime    @default(now())
+  roleId        String?
+  bookings      Booking[]
+  ownedProvider Provider?   @relation("ProviderOwner")
+  provider      Provider?   @relation("ProviderStaff", fields: [providerId], references: [id])
+  accessRole    AccessRole? @relation(fields: [roleId], references: [id])
 }
 
 model Category {
   id        String     @id @default(cuid())
   name      String
   slug      String     @unique
-
   providers Provider[]
 }
 
 model Provider {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
-
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-
-  // 🔥 OWNER
-  ownerId     String   @unique
-  owner       User     @relation("ProviderOwner", fields: [ownerId], references: [id])
-
-  // 🔥 STAFF
-  users       User[]   @relation("ProviderStaff")
-
-  resources   Resource[]
+  ownerId     String       @unique
+  createdAt   DateTime     @default(now())
+  roleId      String?
+  scopedRoles AccessRole[] @relation("ProviderRoles")
   bookings    Booking[]
-
-  createdAt   DateTime @default(now())
+  category    Category     @relation(fields: [categoryId], references: [id])
+  owner       User         @relation("ProviderOwner", fields: [ownerId], references: [id])
+  accessRole  AccessRole?  @relation(fields: [roleId], references: [id])
+  resources   Resource[]
+  users       User[]       @relation("ProviderStaff")
 }
 
 model Resource {
-  id          String   @id @default(cuid())
-  name        String
-  type        ResourceType @default(EVENT)
-  status      ResourceStatus @default(DRAFT)
-
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
-
-  duration    Int
-  price       Int
-
-  capacity    Int      @default(1)
-  isGroupBookingEnabled Boolean @default(false)
+  id                    String                @id @default(cuid())
+  name                  String
+  type                  ResourceType          @default(EVENT)
+  providerId            String
+  duration              Int
+  price                 Int
+  capacity              Int                   @default(1)
+  isGroupBookingEnabled Boolean               @default(false)
   maxBookingPerUser     Int?
+  startTime             String
+  endTime               String
+  status                ResourceStatus        @default(DRAFT)
+  bookings              Booking[]
+  provider              Provider              @relation(fields: [providerId], references: [id])
+  customFields          ResourceCustomField[]
+}
 
-  startTime   String
-  endTime     String
+model ResourceCustomField {
+  id          String          @id @default(cuid())
+  resourceId  String
+  label       String          @db.VarChar(100)
+  type        CustomFieldType
+  placeholder String?         @db.VarChar(150)
+  value       String?
+  isRequired  Boolean         @default(false)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  resource    Resource        @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
-  bookings     Booking[]
-  customFields ResourceCustomField[]
+  @@unique([resourceId, order])
+  @@index([resourceId])
+}
+
+model Booking {
+  id                 String        @id @default(cuid())
+  userId             String
+  resourceId         String
+  providerId         String
+  start              DateTime
+  end                DateTime
+  status             BookingStatus @default(CONFIRMED)
+  seats              Int           @default(1)
+  invoiceNumber      String?       @unique
+  invoiceGeneratedAt DateTime?
+  createdAt          DateTime      @default(now())
+  provider           Provider      @relation(fields: [providerId], references: [id])
+  resource           Resource      @relation(fields: [resourceId], references: [id])
+  user               User          @relation(fields: [userId], references: [id])
+  participants       Participant[]
+}
+
+model InvoiceCounter {
+  year     Int @id
+  sequence Int @default(0)
+}
+
+model Participant {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  bookingId String
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model AccessRole {
+  id          String     @id @default(uuid())
+  name        String     @db.VarChar(60)
+  description String?
+  scope       RoleScope
+  permissions Json
+  isSystem    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  providerId  String?
+  provider    Provider?  @relation("ProviderRoles", fields: [providerId], references: [id])
+  providers   Provider[]
+  users       User[]
+
+  @@unique([name, providerId])
 }
 
 enum ResourceType {
@@ -94,66 +146,6 @@ enum CustomFieldType {
   description
 }
 
-model ResourceCustomField {
-  id          String          @id @default(cuid())
-  resourceId  String
-  resource    Resource        @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  label       String          @db.VarChar(100)
-  type        CustomFieldType
-  placeholder String?         @db.VarChar(150)
-  value       String?
-  isRequired  Boolean         @default(false)
-  order       Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  @@unique([resourceId, order])
-  @@index([resourceId])
-}
-
-model Booking {
-  id          String   @id @default(cuid())
-
-  userId      String
-  resourceId  String
-  providerId  String
-
-  start       DateTime
-  end         DateTime
-
-  status      BookingStatus @default(CONFIRMED)
-  seats       Int           @default(1)
-
-  // 🔥 Invoice fields
-  invoiceNumber      String?   @unique
-  invoiceGeneratedAt DateTime?
-
-  user        User     @relation(fields: [userId], references: [id])
-  resource    Resource @relation(fields: [resourceId], references: [id])
-  provider    Provider @relation(fields: [providerId], references: [id])
-  participants Participant[]
-
-  createdAt   DateTime @default(now())
-}
-
-// Atomic per-year invoice sequence counter
-model InvoiceCounter {
-  year     Int @id
-  sequence Int @default(0)
-}
-
-model Participant {
-  id          String   @id @default(cuid())
-  name        String
-  email       String?
-  phone       String?
-
-  bookingId   String
-  booking     Booking  @relation(fields: [bookingId], references: [id])
-
-  createdAt   DateTime @default(now())
-}
-
 enum Role {
   ADMIN
   PROVIDER
@@ -163,4 +155,9 @@ enum Role {
 enum BookingStatus {
   CONFIRMED
   CANCELLED
+}
+
+enum RoleScope {
+  ADMIN
+  PROVIDER
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
 
 // PATCH /api/users/[id] — update user details
@@ -9,15 +9,15 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requireAdmin();
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "edit");
   if (error) return error;
 
   const { id } = await params;
   const body = await req.json();
-  const { name, email, password, role, providerId } = body;
+  const { name, email, password, role, providerId, roleId } = body;
 
   // Prevent admin from downgrading their own role
-  if (session!.user.id === id && role && role !== "ADMIN") {
+  if (currentUser.id === id && role && role !== "ADMIN") {
     return NextResponse.json(
       { error: "Cannot change your own role" },
       { status: 400 }
@@ -27,6 +27,13 @@ export async function PATCH(
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (currentUser.role === "PROVIDER") {
+      if (!pId || user.providerId !== pId) {
+          return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
+      }
   }
 
   if (role && !["ADMIN", "PROVIDER", "CUSTOMER"].includes(role)) {
@@ -57,8 +64,12 @@ export async function PATCH(
       ...(hashedPassword && { password: hashedPassword }),
       ...(role && { role }),
       ...(providerId !== undefined && { providerId: providerId || null }),
+      ...(roleId !== undefined && { roleId: roleId || null }),
     },
-    include: { provider: { select: { id: true, name: true } } },
+    include: { 
+      provider: { select: { id: true, name: true } },
+      accessRole: true,
+    },
   });
 
   const { password: _pw, ...safeUser } = updated;
@@ -70,13 +81,13 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error, session } = await requireAdmin();
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "delete");
   if (error) return error;
 
   const { id } = await params;
 
   // Prevent self-deletion
-  if (session!.user.id === id) {
+  if (currentUser.id === id) {
     return NextResponse.json(
       { error: "Cannot delete your own account" },
       { status: 400 }
@@ -90,6 +101,13 @@ export async function DELETE(
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (currentUser.role === "PROVIDER") {
+      if (!pId || user.providerId !== pId) {
+          return NextResponse.json({ error: "Forbidden — This user does not belong to your provider" }, { status: 403 });
+      }
   }
 
   if (user.ownedProvider) {

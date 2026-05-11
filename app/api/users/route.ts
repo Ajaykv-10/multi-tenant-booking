@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 import bcrypt from "bcryptjs";
 
 // GET /api/users — list all users
 // Query: ?role=ADMIN|PROVIDER|CUSTOMER
 export async function GET(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "view");
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
   const role = searchParams.get("role") as "ADMIN" | "PROVIDER" | "CUSTOMER" | null;
 
+  const whereClause: any = role ? { role } : {};
+  if (currentUser.role === "PROVIDER") {
+      if (pId) {
+          whereClause.providerId = pId;
+          whereClause.role = "PROVIDER";
+      } else {
+          return NextResponse.json({ error: "Provider not found" }, { status: 403 });
+      }
+  }
+
   const users = await prisma.user.findMany({
-    where: role ? { role } : undefined,
+    where: whereClause,
     include: {
       provider: { select: { id: true, name: true } },
       ownedProvider: { select: { id: true, name: true } },
+      accessRole: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -28,13 +39,13 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/users — create a user
-// Body: { email, password, name?, role, providerId? }
+// Body: { email, password, name?, role, providerId?, roleId? }
 export async function POST(req: NextRequest) {
-  const { error } = await requireAdmin();
+  const { user: currentUser, providerId: pId, error } = await requirePermission("users", "create");
   if (error) return error;
 
   const body = await req.json();
-  const { email, password, name, role, providerId } = body;
+  const { email, password, name, role, providerId, roleId } = body;
 
   if (!email || !password || !role) {
     return NextResponse.json(
@@ -67,17 +78,29 @@ export async function POST(req: NextRequest) {
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  // If provider is creating a user, force providerId and role
+  let finalProviderId = providerId;
+  let finalRole = role;
+
+  if (currentUser.role === "PROVIDER") {
+    if (!pId) return NextResponse.json({ error: "Provider not found" }, { status: 403 });
+    finalProviderId = pId;
+    finalRole = "PROVIDER";
+  }
+
   const user = await prisma.user.create({
     data: {
       email: email.toLowerCase().trim(),
       password: hashedPassword,
       name: name?.trim() || null,
-      role,
-      providerId: role === "PROVIDER" && providerId ? providerId : null,
+      role: finalRole,
+      providerId: finalRole === "PROVIDER" && finalProviderId ? finalProviderId : null,
+      roleId: roleId || null,
     },
     include: {
       provider: { select: { id: true, name: true } },
       ownedProvider: { select: { id: true, name: true } },
+      accessRole: true,
     },
   });
 

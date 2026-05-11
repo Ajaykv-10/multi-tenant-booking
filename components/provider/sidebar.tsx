@@ -3,15 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { usePermissions } from "@/context/PermissionContext";
 
 const menuItems = [
-  { href: "/provider", label: "Dashboard", matchExact: true },
-  { href: "/provider/resources", label: "Resources", matchExact: false },
-  { href: "/provider/bookings", label: "Bookings", matchExact: false },
+  { href: "/provider", label: "Dashboard", matchExact: true, module: "dashboard" },
+  { href: "/provider/resources", label: "Resources", matchExact: false, module: "resources" },
+  { href: "/provider/bookings", label: "Bookings", matchExact: false, module: "bookings" },
+  { href: "/provider/roles", label: "Roles", matchExact: false, module: "roles" },
+  { href: "/provider/users", label: "Users", matchExact: false, module: "users" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { can, loading } = usePermissions();
+
+  if (loading) return (
+    <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col items-center justify-center z-20">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+    </aside>
+  );
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-20">
@@ -28,25 +38,30 @@ export function Sidebar() {
 
       <div className="flex-1 overflow-y-auto py-6 px-3">
         <div className="space-y-1">
-          {menuItems.map((item) => {
-            const isActive = item.matchExact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+          {menuItems
+            .map(item => {
+              const visible = item.module ? can(item.module, "view") : true;
+              return { ...item, visible };
+            })
+            .filter(item => item.visible)
+            .map((item) => {
+              const isActive = item.matchExact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                  isActive
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${isActive
                     ? "bg-violet-500/10 text-violet-400"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+                    }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
         </div>
       </div>
 

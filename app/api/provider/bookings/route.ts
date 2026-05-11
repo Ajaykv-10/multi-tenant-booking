@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireProvider } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/provider/bookings?date=YYYY-MM-DD
 export async function GET(req: NextRequest) {
-  const { providerId, error } = await requireProvider();
+  const { providerId, error } = await requirePermission("bookings", "view");
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

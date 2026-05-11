@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireProvider } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/provider/resources/[id]
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { providerId, error } = await requireProvider();
+  const { user, error } = await requirePermission("resources", "view");
   if (error) return error;
+
+  const providerId = user?.ownedProvider?.id;
+  if (!providerId) {
+    return NextResponse.json({ error: "Forbidden — No provider owned" }, { status: 403 });
+  }
 
   const { id } = await params;
   try {
@@ -37,8 +42,13 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { providerId, error } = await requireProvider();
+  const { user, error } = await requirePermission("resources", "edit");
   if (error) return error;
+
+  const providerId = user?.ownedProvider?.id;
+  if (!providerId) {
+    return NextResponse.json({ error: "Forbidden — No provider owned" }, { status: 403 });
+  }
 
   const { id } = await params;
   const body = await req.json();
@@ -77,8 +87,13 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { providerId, error } = await requireProvider();
+  const { user, error } = await requirePermission("resources", "delete");
   if (error) return error;
+
+  const providerId = user?.ownedProvider?.id;
+  if (!providerId) {
+    return NextResponse.json({ error: "Forbidden — No provider owned" }, { status: 403 });
+  }
 
   const { id } = await params;
 

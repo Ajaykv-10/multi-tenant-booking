@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireProvider } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/provider/resources
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { providerId, error } = await requireProvider();
+  const { providerId, error } = await requirePermission("resources", "view");
   if (error) return error;
+
+  if (!providerId) {
+    return NextResponse.json({ error: "Forbidden — No provider association found" }, { status: 403 });
+  }
 
   try {
     const resources = await prisma.resource.findMany({
@@ -30,8 +34,12 @@ export async function GET() {
 
 // POST /api/provider/resources
 export async function POST(req: NextRequest) {
-  const { providerId, error } = await requireProvider();
+  const { providerId, error } = await requirePermission("resources", "create");
   if (error) return error;
+
+  if (!providerId) {
+    return NextResponse.json({ error: "Forbidden — No provider association found" }, { status: 403 });
+  }
 
   const body = await req.json();
   const { name, type, duration, price, startTime, endTime, capacity, isGroupBookingEnabled, maxBookingPerUser } = body;

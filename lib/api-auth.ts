@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 import { prisma } from "@/lib/prisma";
+import { checkPermission } from "./permissions";
 
 type AdminResult =
   | { session: Session; error: null }
@@ -59,22 +60,92 @@ export async function requireProvider(): Promise<ProviderResult> {
     };
   }
 
-  // Get the provider ID that this user owns
+  // Get the provider ID (either they own it or they are staff)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { ownedProvider: { select: { id: true } } },
+    select: { providerId: true, ownedProvider: { select: { id: true } } },
   });
 
-  if (!user?.ownedProvider) {
+  const providerId = user?.ownedProvider?.id || user?.providerId;
+
+  if (!providerId) {
     return {
       session: null,
       providerId: null,
       error: NextResponse.json(
-        { error: "Forbidden — You must own a provider account" },
+        { error: "Forbidden — You must belong to a provider account" },
         { status: 403 }
       ),
     };
   }
 
-  return { session, providerId: user.ownedProvider.id, error: null };
+  return { session, providerId, error: null };
+}
+
+/**
+ * Universal permission guard.
+ * Checks both session role (ADMIN/PROVIDER) and granular AccessRole permissions.
+ */
+export async function requirePermission(module: string, action: string): Promise<{ 
+  session: Session | null; 
+  user: any; 
+  providerId: string | null; 
+  error: NextResponse | null 
+}> {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return {
+      session: null,
+      user: null,
+      providerId: null,
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Fetch user with role
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { accessRole: true, ownedProvider: { select: { id: true } } },
+  });
+
+  if (!user) {
+    return {
+      session: null,
+      user: null,
+      providerId: null,
+      error: NextResponse.json({ error: "User not found" }, { status: 404 }),
+    };
+  }
+
+  const providerId = user.ownedProvider?.id || user.providerId || null;
+
+  console.log(`[requirePermission] User: ${user.email}, Role: ${user.role}, AccessRole: ${user.accessRole?.name}`);
+
+  // 1. Super Admin Bypass (Fallback if no accessRole but user role is ADMIN)
+  const roleName = user.accessRole?.name?.toLowerCase().trim();
+  if (user.role === "ADMIN" && (!user.accessRole || roleName === "super admin")) {
+    return { session, user, providerId, error: null };
+  }
+
+  // 1b. Provider Owner Bypass (Full access to provider dashboard)
+  if (user.role === "PROVIDER" && user.ownedProvider) {
+    return { session, user, providerId, error: null };
+  }
+
+  const hasPerm = checkPermission(user.accessRole?.permissions, module, action);
+
+  if (!hasPerm) {
+    return {
+      session: null,
+      user: null,
+      providerId: null,
+      error: NextResponse.json(
+        { error: `Forbidden — Missing ${module}.${action} permission` },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { session, user, providerId, error: null };
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 import { ensureInvoiceNumber } from "@/lib/invoice/ensureInvoiceNumber";
 
 
@@ -10,7 +10,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAdmin();
+  const { error, user } = await requirePermission("bookings", "edit");
   if (error) return error;
 
   const { id } = await params;
@@ -20,6 +20,11 @@ export async function PATCH(
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (user.role === "PROVIDER" && user.ownedProvider?.id !== booking.providerId) {
+    return NextResponse.json({ error: "Forbidden — You don't own this resource" }, { status: 403 });
   }
 
   if (status && !["CONFIRMED", "CANCELLED"].includes(status)) {
@@ -75,7 +80,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAdmin();
+  const { error, user } = await requirePermission("bookings", "delete");
   if (error) return error;
 
   const { id } = await params;
@@ -83,6 +88,11 @@ export async function DELETE(
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) {
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+  }
+
+  // Ownership check for providers
+  if (user.role === "PROVIDER" && user.ownedProvider?.id !== booking.providerId) {
+    return NextResponse.json({ error: "Forbidden — You don't own this resource" }, { status: 403 });
   }
 
   await prisma.booking.delete({ where: { id } });

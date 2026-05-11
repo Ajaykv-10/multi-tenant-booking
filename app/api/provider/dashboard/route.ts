@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireProvider } from "@/lib/api-auth";
+import { requirePermission } from "@/lib/api-auth";
 
 // GET /api/provider/dashboard
 export async function GET() {
-  const { providerId, error } = await requireProvider();
+  const { providerId, error } = await requirePermission("dashboard", "view");
   if (error) return error;
 
   const today = new Date();
